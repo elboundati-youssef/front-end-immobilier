@@ -1,246 +1,515 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import { useSearchParams } from "next/navigation"
-import { SlidersHorizontal, X, ArrowUpDown, Loader2, ChevronLeft, ChevronRight, Search } from "lucide-react"
+import {
+  SlidersHorizontal, X, ArrowUpDown, Loader2,
+  ChevronLeft, ChevronRight, Search, Sparkles, Building2
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { PropertyCard } from "@/components/property-card"
-// On supprime SearchBar importé car on va créer notre propre input simple ici pour la recherche globale
 import {
   properties as staticProperties,
-  cities,
-  propertyTypes,
-  transactionTypes,
-  type PropertyType,
-  type TransactionType,
+  cities, propertyTypes, transactionTypes,
+  type PropertyType, type TransactionType,
 } from "@/lib/data"
 import api from "@/services/api"
 
 type SortOption = "recent" | "price-asc" | "price-desc"
+const API_URL = "http://127.0.0.1:8000"
+const ITEMS_PER_PAGE = 6
 
-const API_URL = "http://127.0.0.1:8000";
-const ITEMS_PER_PAGE = 6; 
+/* ─── Hook: intersection observer ─── */
+function useInView(threshold = 0.12) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [inView, setInView] = useState(false)
+  useEffect(() => {
+    const el = ref.current; if (!el) return
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setInView(true); obs.disconnect() } }, { threshold })
+    obs.observe(el); return () => obs.disconnect()
+  }, [threshold])
+  return { ref, inView }
+}
 
 export default function BiensPage() {
   const searchParams = useSearchParams()
 
-  // --- ÉTATS ---
-  const [allProperties, setAllProperties] = useState<any[]>(staticProperties)
-  const [loading, setLoading] = useState(true)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [favorites, setFavorites] = useState<string[]>([])
+  const [allProperties, setAllProperties]   = useState<any[]>([])
+  const [loading, setLoading]               = useState(true)
+  const [currentPage, setCurrentPage]       = useState(1)
+  const [favorites, setFavorites]           = useState<string[]>([])
+  const [hasSearched, setHasSearched]       = useState(false)
+  const [heroVisible, setHeroVisible]       = useState(false)
+  const [searchFocused, setSearchFocused]   = useState(false)
 
-  // --- NOUVEAU : RECHERCHE GLOBALE ---
-  const [globalSearch, setGlobalSearch] = useState("")
+  const [globalSearch, setGlobalSearch]     = useState("")
+  const [city, setCity]                     = useState(searchParams.get("city") || "")
+  const [type, setType]                     = useState<PropertyType | "">((searchParams.get("type") as PropertyType) || "")
+  const [transaction, setTransaction]       = useState<TransactionType | "">((searchParams.get("transaction") as TransactionType) || "")
+  const [minPrice, setMinPrice]             = useState("")
+  const [maxPrice, setMaxPrice]             = useState("")
+  const [minSurface, setMinSurface]         = useState("")
+  const [rooms, setRooms]                   = useState("")
+  const [sort, setSort]                     = useState<SortOption>("recent")
+  const [showFilters, setShowFilters]       = useState(false)
 
-  // États des filtres avancés
-  const [city, setCity] = useState(searchParams.get("city") || "")
-  const [type, setType] = useState<PropertyType | "">((searchParams.get("type") as PropertyType) || "")
-  const [transaction, setTransaction] = useState<TransactionType | "">((searchParams.get("transaction") as TransactionType) || "")
-  const [minPrice, setMinPrice] = useState("")
-  const [maxPrice, setMaxPrice] = useState("")
-  const [minSurface, setMinSurface] = useState("")
-  const [rooms, setRooms] = useState("")
-  const [sort, setSort] = useState<SortOption>("recent")
-  const [showFilters, setShowFilters] = useState(false)
+  const { ref: resultsRef, inView: resultsInView } = useInView()
 
-  // --- SYNCHRONISATION URL ---
+  const suggestions = [
+    "Appartement à Tanger moins de 5000",
+    "Villa avec piscine à Marrakech",
+    "Appartement Rabat pour étudiant",
+  ]
+
+  useEffect(() => { const t = setTimeout(() => setHeroVisible(true), 80); return () => clearTimeout(t) }, [])
+
   useEffect(() => {
     setCity(searchParams.get("city") || "")
     setType((searchParams.get("type") as PropertyType) || "")
     setTransaction((searchParams.get("transaction") as TransactionType) || "")
-    // Si une recherche globale est passée dans l'URL (optionnel)
     if (searchParams.get("q")) setGlobalSearch(searchParams.get("q") || "")
   }, [searchParams])
 
-  // --- CHARGEMENT FAVORIS ---
   useEffect(() => {
     const fetchFavorites = async () => {
-      try {
-        const res = await api.get('/my-favorites')
-        const favIds = res.data.map((fav: any) => fav.id.toString())
-        setFavorites(favIds)
-      } catch (err) { console.log("Non connecté") }
+      try { const res = await api.get('/my-favorites'); setFavorites(res.data.map((f: any) => f.id.toString())) }
+      catch { /* non connecté */ }
     }
     fetchFavorites()
   }, [])
 
-  // --- CHARGEMENT DONNÉES ---
-  useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        const res = await api.get('/properties') 
-        const dynamicProperties = res.data.map((p: any) => {
-            let images: string[] = [];
-            if (Array.isArray(p.images)) images = p.images;
-            else if (typeof p.images === 'string') { try { images = JSON.parse(p.images); } catch(e){ images = [] } }
-            const formattedImages = images.map(img => img.startsWith('http') ? img : `${API_URL}${img}`);
-            let features: string[] = [];
-            if (Array.isArray(p.equipments)) features = p.equipments;
-            else if (typeof p.equipments === 'string') { try { features = JSON.parse(p.equipments); } catch(e){} }
+  const formatProperties = (data: any[]) => data.map((p: any) => {
+    let images: string[] = []
+    if (Array.isArray(p.images)) images = p.images
+    else if (typeof p.images === 'string') { try { images = JSON.parse(p.images) } catch { images = [] } }
+    const formattedImages = images.map((img: string) => img.startsWith('http') ? img : `${API_URL}${img}`)
 
-            return {
-                ...p,
-                id: p.id.toString(),
-                images: formattedImages.length > 0 ? formattedImages : ["/placeholder.jpg"],
-                features: features,
-                type: p.property_type,
-                transaction: p.transaction_type,
-                createdAt: p.created_at, 
-            };
-        });
-        setAllProperties([...staticProperties, ...dynamicProperties]);
-      } catch (error) { console.error("Erreur API", error); } finally { setLoading(false); }
-    };
-    fetchProperties();
-  }, []);
+    let features: string[] = []
+    if (Array.isArray(p.equipments)) features = p.equipments
+    else if (typeof p.equipments === 'string') { try { features = JSON.parse(p.equipments) } catch {} }
+    if (Array.isArray(p.amenities)) features = p.amenities
+    else if (typeof p.amenities === 'string') { try { features = JSON.parse(p.amenities) } catch {} }
 
-  // --- FILTRAGE INTELLIGENT ---
+    return {
+      ...p,
+      id: p.id.toString(),
+      images: formattedImages.length > 0 ? formattedImages : ["/placeholder.jpg"],
+      features,
+      type: p.property_type || p.type,
+      transaction: p.transaction_type || p.transaction,
+      createdAt: p.created_at || p.createdAt,
+    }
+  })
+
+  const fetchAllProperties = async () => {
+    setLoading(true)
+    try {
+      const res = await api.get('/properties')
+      setAllProperties([...staticProperties, ...formatProperties(res.data)])
+    } catch { /* silent */ } finally { setLoading(false) }
+  }
+
+  useEffect(() => { fetchAllProperties() }, [])
+
+  const handleSmartSearch = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    if (!globalSearch.trim()) { setHasSearched(false); fetchAllProperties(); return }
+    setLoading(true); setHasSearched(true)
+    try {
+      const res = await api.get(`/smart-search?q=${encodeURIComponent(globalSearch)}`)
+      setAllProperties(formatProperties(res.data))
+    } catch { /* silent */ } finally { setLoading(false) }
+  }
+
+  const handleSuggestionClick = (text: string) => {
+    setGlobalSearch(text)
+    setTimeout(() => document.getElementById('magic-btn')?.click(), 50)
+  }
+
   const filteredResult = useMemo(() => {
     let result = [...allProperties]
-
-    // 1. RECHERCHE GLOBALE (Titre, Ville, Type, Transaction)
-    if (globalSearch) {
-        const term = globalSearch.toLowerCase();
-        result = result.filter(p => 
-            (p.title && p.title.toLowerCase().includes(term)) ||
-            (p.city && p.city.toLowerCase().includes(term)) ||
-            (p.type && p.type.toLowerCase().includes(term)) ||
-            (p.transaction && p.transaction.toLowerCase().includes(term))
-        );
-    }
-
-    // 2. FILTRES AVANCÉS (S'appliquent EN PLUS de la recherche globale)
-    if (city) result = result.filter((p) => p.city && p.city.toLowerCase().includes(city.toLowerCase()))
+    if (city) result = result.filter((p) => p.city?.toLowerCase().includes(city.toLowerCase()))
     if (type) result = result.filter((p) => p.type === type)
     if (transaction) result = result.filter((p) => p.transaction === transaction)
     if (minPrice) result = result.filter((p) => p.price >= Number(minPrice))
     if (maxPrice) result = result.filter((p) => p.price <= Number(maxPrice))
     if (minSurface) result = result.filter((p) => p.surface >= Number(minSurface))
     if (rooms) result = result.filter((p) => p.rooms >= Number(rooms))
-
-    // 3. TRI
     switch (sort) {
-      case "price-asc": result.sort((a, b) => a.price - b.price); break
+      case "price-asc":  result.sort((a, b) => a.price - b.price); break
       case "price-desc": result.sort((a, b) => b.price - a.price); break
-      case "recent":
-      default: result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      default:           result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     }
-
     return result
-  }, [allProperties, globalSearch, city, type, transaction, minPrice, maxPrice, minSurface, rooms, sort])
+  }, [allProperties, city, type, transaction, minPrice, maxPrice, minSurface, rooms, sort])
 
-  // --- PAGINATION ---
   const totalPages = Math.ceil(filteredResult.length / ITEMS_PER_PAGE)
   const currentItems = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-    return filteredResult.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+    const s = (currentPage - 1) * ITEMS_PER_PAGE
+    return filteredResult.slice(s, s + ITEMS_PER_PAGE)
   }, [filteredResult, currentPage])
 
-  useEffect(() => { setCurrentPage(1) }, [globalSearch, city, type, transaction, minPrice, maxPrice, minSurface, rooms, sort])
+  useEffect(() => { setCurrentPage(1) }, [allProperties, city, type, transaction, minPrice, maxPrice, minSurface, rooms, sort])
 
   const activeFilters = [city, type, transaction, minPrice, maxPrice, minSurface, rooms].filter(Boolean).length
 
   const clearFilters = () => {
-    setGlobalSearch(""); // On vide aussi la recherche globale
-    setCity(""); setType(""); setTransaction(""); setMinPrice(""); setMaxPrice(""); setMinSurface(""); setRooms("");
+    setGlobalSearch(""); setCity(""); setType(""); setTransaction("")
+    setMinPrice(""); setMaxPrice(""); setMinSurface(""); setRooms("")
+    setHasSearched(false); fetchAllProperties()
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap');
+        :root { --ease-expo: cubic-bezier(0.16,1,0.3,1); }
 
-      <div className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
-        <div className="mb-8">
-          <h1 className="mb-2 font-serif text-3xl font-bold text-foreground md:text-4xl">Tous les biens</h1>
-          <p className="text-muted-foreground">{filteredResult.length} bien{filteredResult.length !== 1 ? "s" : ""} trouvés</p>
-        </div>
+        /* Reveal */
+        .rv { opacity:0; transform:translateY(28px); transition:opacity .65s var(--ease-expo),transform .65s var(--ease-expo); }
+        .rv.on { opacity:1; transform:none; }
+        .d1{transition-delay:60ms;} .d2{transition-delay:130ms;}
+        .d3{transition-delay:200ms;} .d4{transition-delay:270ms;}
+        .d5{transition-delay:340ms;} .d6{transition-delay:410ms;}
 
-        {/* --- BARRE DE RECHERCHE UNIQUE --- */}
-        <div className="mb-6 relative">
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        /* Hero text entrance */
+        .hw { display:inline-block; opacity:0; transform:translateY(36px);
+              transition:opacity .7s var(--ease-expo),transform .7s var(--ease-expo); }
+        .hv .hw { opacity:1; transform:none; }
+
+        /* Search bar */
+        .magic-bar {
+          display:flex; align-items:center; overflow:hidden;
+          border-radius:99px;
+          border:1.5px solid hsl(var(--border));
+          background:hsl(var(--card));
+          box-shadow:0 4px 24px rgba(0,0,0,.07);
+          transition:box-shadow .3s ease, border-color .3s ease;
+        }
+        .magic-bar.focused {
+          box-shadow:0 6px 36px rgba(0,0,0,.10);
+          border-color:hsl(var(--primary)/.5);
+        }
+        .magic-input {
+          flex:1; padding:16px 16px 16px 8px;
+          background:transparent; border:none; outline:none;
+          font-size:.95rem; color:hsl(var(--foreground));
+          font-family:'DM Sans',sans-serif;
+        }
+        .magic-input::placeholder { color:hsl(var(--muted-foreground)); }
+        .magic-submit {
+          background:hsl(var(--primary)); color:hsl(var(--primary-foreground));
+          border:none; border-radius:99px;
+          margin:5px; padding:12px 24px;
+          font-weight:600; font-size:.875rem;
+          cursor:pointer; display:flex; align-items:center; gap:8px;
+          transition:transform .25s var(--ease-expo),box-shadow .25s;
+          font-family:'DM Sans',sans-serif;
+          white-space:nowrap;
+        }
+        .magic-submit:hover { transform:scale(1.03); box-shadow:0 4px 16px rgba(0,0,0,.15); }
+        .magic-submit:active { transform:scale(.98); }
+
+        /* Suggestion pills */
+        .sug-pill {
+          padding:6px 14px; border-radius:99px;
+          border:1px solid hsl(var(--border));
+          background:hsl(var(--secondary));
+          color:hsl(var(--secondary-foreground));
+          font-size:.78rem; cursor:pointer;
+          transition:all .2s ease;
+          font-family:'DM Sans',sans-serif;
+        }
+        .sug-pill:hover { background:hsl(var(--primary)/.08); border-color:hsl(var(--primary)/.4); color:hsl(var(--primary)); }
+
+        /* Filter panel */
+        .filter-panel {
+          animation:slideDown .35s var(--ease-expo);
+        }
+        @keyframes slideDown {
+          from { opacity:0; transform:translateY(-12px); }
+          to   { opacity:1; transform:none; }
+        }
+        .filter-input {
+          width:100%; border-radius:10px;
+          border:1px solid hsl(var(--border));
+          background:hsl(var(--background));
+          padding:10px 12px; font-size:.85rem;
+          color:hsl(var(--foreground));
+          outline:none; transition:border-color .2s,box-shadow .2s;
+          font-family:'DM Sans',sans-serif;
+        }
+        .filter-input:focus { border-color:hsl(var(--primary)); box-shadow:0 0 0 3px hsl(var(--primary)/.12); }
+        .filter-label { display:block; margin-bottom:6px; font-size:.75rem; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:hsl(var(--muted-foreground)); }
+
+        /* Active filter badge */
+        .filter-badge {
+          display:inline-flex; align-items:center; justify-content:center;
+          width:20px; height:20px; border-radius:99px;
+          background:hsl(var(--primary)); color:hsl(var(--primary-foreground));
+          font-size:.7rem; font-weight:700;
+        }
+
+        /* Property card stagger */
+        .card-item { opacity:0; transform:translateY(24px); animation:cardIn .5s var(--ease-expo) forwards; }
+        @keyframes cardIn { to { opacity:1; transform:none; } }
+
+        /* Pagination */
+        .page-btn {
+          width:40px; height:40px; border-radius:10px;
+          display:flex; align-items:center; justify-content:center;
+          border:1px solid hsl(var(--border));
+          background:hsl(var(--card)); cursor:pointer;
+          font-size:.875rem; font-weight:500;
+          color:hsl(var(--foreground));
+          transition:all .2s ease;
+          font-family:'DM Sans',sans-serif;
+        }
+        .page-btn:hover:not(:disabled) { border-color:hsl(var(--primary)); color:hsl(var(--primary)); background:hsl(var(--primary)/.06); }
+        .page-btn.active { background:hsl(var(--primary)); color:hsl(var(--primary-foreground)); border-color:transparent; }
+        .page-btn:disabled { opacity:.4; cursor:not-allowed; }
+
+        /* Loader */
+        @keyframes spin360 { to{transform:rotate(360deg);} }
+        .spin { animation:spin360 .75s linear infinite; }
+
+        /* Empty state */
+        .empty-state { border:1.5px dashed hsl(var(--border)); border-radius:20px; }
+
+        /* Sort select */
+        .sort-select {
+          appearance:none;
+          border:1px solid hsl(var(--border));
+          background:hsl(var(--card));
+          border-radius:10px;
+          padding:8px 14px;
+          font-size:.875rem;
+          color:hsl(var(--foreground));
+          outline:none;
+          cursor:pointer;
+          font-family:'DM Sans',sans-serif;
+          transition:border-color .2s;
+        }
+        .sort-select:focus { border-color:hsl(var(--primary)); }
+      `}</style>
+
+      <div className="min-h-screen bg-background" style={{ fontFamily:"'DM Sans',sans-serif" }}>
+        <Navbar />
+
+        <div className="mx-auto max-w-7xl px-4 py-10 lg:px-8">
+
+          {/* ── Hero Search ── */}
+          <div className={`mb-14 mx-auto max-w-3xl text-center pt-4 ${heroVisible ? "hv" : ""}`}>
+
+            {/* Badge */}
+            <div
+              className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-4 py-1.5"
+              style={{ opacity:heroVisible?1:0, transition:"opacity .6s ease .1s", fontSize:".8rem", color:"hsl(var(--muted-foreground))" }}
+            >
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              Recherche intelligente propulsée par l&apos;IA
+            </div>
+
+            <h1
+              className="mb-3 font-bold text-foreground"
+              style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(2rem,5vw,3.2rem)", lineHeight:1.1 }}
+            >
+              <span className="hw" style={{ transitionDelay:"150ms" }}>Trouvez votre bien </span>
+              <span className="hw text-primary" style={{ transitionDelay:"280ms" }}>&nbsp;magiquement</span>
+            </h1>
+
+            <p
+              className="mb-8 text-muted-foreground"
+              style={{ fontSize:"1rem", opacity:heroVisible?1:0, transform:heroVisible?"none":"translateY(12px)", transition:"all .7s var(--ease-expo) .4s" }}
+            >
+              Décrivez simplement ce que vous cherchez — notre IA s&apos;occupe du reste.
+            </p>
+
+            {/* Search bar */}
+            <form
+              onSubmit={handleSmartSearch}
+              style={{ opacity:heroVisible?1:0, transform:heroVisible?"none":"translateY(16px)", transition:"all .8s var(--ease-expo) .55s" }}
+            >
+              <div className={`magic-bar${searchFocused?" focused":""}`}>
+                <div style={{ padding:"0 8px 0 20px", color:"hsl(var(--primary))", flexShrink:0 }}>
+                  <Sparkles className="h-5 w-5" />
+                </div>
                 <input
-                    type="text"
-                    placeholder="Rechercher par titre, ville, type (ex: 'Villa Tanger' ou 'Location')"
-                    className="h-12 w-full rounded-xl border border-border bg-card pl-10 pr-4 text-sm shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    value={globalSearch}
-                    onChange={(e) => setGlobalSearch(e.target.value)}
+                  type="text"
+                  placeholder="Ex: Villa à Tanger avec piscine moins de 15 000 DH..."
+                  className="magic-input"
+                  value={globalSearch}
+                  onChange={(e) => setGlobalSearch(e.target.value)}
+                  onFocus={() => setSearchFocused(true)}
+                  onBlur={() => setSearchFocused(false)}
                 />
-            </div>
-        </div>
+                <button id="magic-btn" type="submit" className="magic-submit" disabled={loading}>
+                  {loading
+                    ? <Loader2 className="h-4 w-4 spin" />
+                    : <Search className="h-4 w-4" />
+                  }
+                  <span className="hidden sm:inline">Chercher</span>
+                </button>
+              </div>
+            </form>
 
-        {/* Filtres & Tri */}
-        <div className="mb-6 flex items-center justify-between">
-          <Button variant="outline" className="gap-2" onClick={() => setShowFilters(!showFilters)}>
-            <SlidersHorizontal className="h-4 w-4" />
-            Filtres avancés {activeFilters > 0 && <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">{activeFilters}</span>}
-          </Button>
-
-          <div className="flex items-center gap-2">
-            <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-            <select value={sort} onChange={(e) => setSort(e.target.value as SortOption)} className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
-              <option value="recent">Plus récent</option>
-              <option value="price-asc">Moins cher</option>
-              <option value="price-desc">Plus cher</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Panneau Filtres Avancés */}
-        {showFilters && (
-          <div className="mb-6 rounded-xl border border-border bg-card p-4 shadow-sm md:p-6 animate-in fade-in slide-in-from-top-2">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-semibold text-foreground">Critères spécifiques</h3>
-              {(activeFilters > 0 || globalSearch) && (
-                <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 text-muted-foreground">
-                  <X className="h-3.5 w-3.5" /> Tout effacer
-                </Button>
-              )}
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-              {/* Les mêmes sélecteurs qu'avant */}
-              <div><label className="mb-1.5 block text-sm font-medium">Ville</label><select value={city} onChange={(e) => setCity(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2.5 text-sm"><option value="">Toutes</option>{cities.map((c) => <option key={c} value={c}>{c}</option>)}</select></div>
-              <div><label className="mb-1.5 block text-sm font-medium">Type</label><select value={type} onChange={(e) => setType(e.target.value as PropertyType | "")} className="w-full rounded-lg border bg-background px-3 py-2.5 text-sm"><option value="">Tous</option>{propertyTypes.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}</select></div>
-              <div><label className="mb-1.5 block text-sm font-medium">Transaction</label><select value={transaction} onChange={(e) => setTransaction(e.target.value as TransactionType | "")} className="w-full rounded-lg border bg-background px-3 py-2.5 text-sm"><option value="">Toutes</option>{transactionTypes.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}</select></div>
-              <div><label className="mb-1.5 block text-sm font-medium">Pièces</label><select value={rooms} onChange={(e) => setRooms(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2.5 text-sm"><option value="">Toutes</option>{[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n}+</option>)}</select></div>
-              <div><label className="mb-1.5 block text-sm font-medium">Prix min</label><input type="number" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} placeholder="0" className="w-full rounded-lg border bg-background px-3 py-2.5 text-sm" /></div>
-              <div><label className="mb-1.5 block text-sm font-medium">Prix max</label><input type="number" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder="Max" className="w-full rounded-lg border bg-background px-3 py-2.5 text-sm" /></div>
-              <div><label className="mb-1.5 block text-sm font-medium">Surface min</label><input type="number" value={minSurface} onChange={(e) => setMinSurface(e.target.value)} placeholder="m²" className="w-full rounded-lg border bg-background px-3 py-2.5 text-sm" /></div>
-            </div>
-          </div>
-        )}
-
-        {/* Résultats & Pagination */}
-        {loading ? (
-            <div className="flex justify-center py-20"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>
-        ) : currentItems.length > 0 ? (
-          <>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {currentItems.map((property) => (
-                <PropertyCard key={property.id} property={property} initialIsFavorite={favorites.includes(property.id)} />
+            {/* Suggestions */}
+            <div
+              className="mt-4 flex flex-wrap justify-center gap-2"
+              style={{ opacity:heroVisible?1:0, transition:"opacity .8s ease .75s" }}
+            >
+              <span style={{ fontSize:".75rem", color:"hsl(var(--muted-foreground))", alignSelf:"center" }}>Essayez :</span>
+              {suggestions.map((s, i) => (
+                <button key={i} type="button" onClick={() => handleSuggestionClick(s)} className="sug-pill">
+                  {s}
+                </button>
               ))}
             </div>
-            {totalPages > 1 && (
-              <div className="mt-12 flex items-center justify-center gap-2">
-                <Button variant="outline" size="icon" onClick={() => { setCurrentPage(prev => Math.max(prev - 1, 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
-                <div className="flex items-center gap-1">{Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (<Button key={page} variant={currentPage === page ? "default" : "outline"} className="h-10 w-10 p-0" onClick={() => { setCurrentPage(page); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>{page}</Button>))}</div>
-                <Button variant="outline" size="icon" onClick={() => { setCurrentPage(prev => Math.min(prev + 1, totalPages)); window.scrollTo({ top: 0, behavior: 'smooth' }); }} disabled={currentPage === totalPages}><ChevronRight className="h-4 w-4" /></Button>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="py-20 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-secondary"><SlidersHorizontal className="h-8 w-8 text-muted-foreground" /></div>
-            <h3 className="mb-2 text-lg font-semibold text-foreground">Aucun bien trouvé</h3>
-            <p className="mb-6 text-muted-foreground">Essayez de modifier vos critères de recherche.</p>
-            <Button variant="outline" onClick={clearFilters}>Effacer les filtres</Button>
           </div>
-        )}
+
+          {/* ── Results header ── */}
+          <div
+            ref={resultsRef}
+            className={`mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5 rv${resultsInView?" on":""}`}
+          >
+            <div>
+              <h2 className="font-bold text-foreground" style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"1.5rem" }}>
+                {hasSearched ? "Résultats de votre recherche" : "Tous nos biens"}
+              </h2>
+              <p className="text-muted-foreground mt-0.5" style={{ fontSize:".85rem" }}>
+                <span className="font-semibold text-primary">{filteredResult.length}</span>{" "}
+                bien{filteredResult.length !== 1 ? "s" : ""} trouvé{filteredResult.length !== 1 ? "s" : ""}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Filters toggle */}
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-all hover:border-primary/40 hover:bg-primary/5"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                Filtres
+                {activeFilters > 0 && <span className="filter-badge">{activeFilters}</span>}
+              </button>
+
+              {/* Sort */}
+              <div className="flex items-center gap-2">
+                <ArrowUpDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
+                <select value={sort} onChange={(e) => setSort(e.target.value as SortOption)} className="sort-select">
+                  <option value="recent">Plus récent</option>
+                  <option value="price-asc">Prix croissant</option>
+                  <option value="price-desc">Prix décroissant</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Filter panel ── */}
+          {showFilters && (
+            <div className="filter-panel mb-8 rounded-2xl border border-border bg-card p-6 shadow-sm">
+              <div className="mb-5 flex items-center justify-between">
+                <h3 className="font-semibold text-foreground" style={{ fontSize:".95rem" }}>Affiner la recherche</h3>
+                {(activeFilters > 0 || globalSearch) && (
+                  <button onClick={clearFilters} className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
+                    <X className="h-3.5 w-3.5" /> Tout effacer
+                  </button>
+                )}
+              </div>
+              <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                {[
+                  { label:"Ville", el: <select value={city} onChange={(e) => setCity(e.target.value)} className="filter-input"><option value="">Toutes</option>{cities.map((c) => <option key={c} value={c}>{c}</option>)}</select> },
+                  { label:"Type", el: <select value={type} onChange={(e) => setType(e.target.value as PropertyType|"")} className="filter-input"><option value="">Tous</option>{propertyTypes.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}</select> },
+                  { label:"Transaction", el: <select value={transaction} onChange={(e) => setTransaction(e.target.value as TransactionType|"")} className="filter-input"><option value="">Toutes</option>{transactionTypes.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}</select> },
+                  { label:"Pièces min.", el: <select value={rooms} onChange={(e) => setRooms(e.target.value)} className="filter-input"><option value="">Toutes</option>{[1,2,3,4,5,6].map((n) => <option key={n} value={n}>{n}+</option>)}</select> },
+                  { label:"Prix min (DH)", el: <input type="number" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} placeholder="0" className="filter-input" /> },
+                  { label:"Prix max (DH)", el: <input type="number" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder="Illimité" className="filter-input" /> },
+                  { label:"Surface min (m²)", el: <input type="number" value={minSurface} onChange={(e) => setMinSurface(e.target.value)} placeholder="0" className="filter-input" /> },
+                ].map(({ label, el }) => (
+                  <div key={label}>
+                    <span className="filter-label">{label}</span>
+                    {el}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Content ── */}
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-28 text-muted-foreground gap-4">
+              <div style={{ width:48,height:48,borderRadius:"50%",border:"3px solid hsl(var(--border))",borderTopColor:"hsl(var(--primary))",animation:"spin360 .8s linear infinite" }} />
+              <p style={{ fontSize:".9rem" }}>Analyse de votre demande en cours…</p>
+            </div>
+          ) : currentItems.length > 0 ? (
+            <>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {currentItems.map((property, i) => (
+                  <div
+                    key={property.id}
+                    className="card-item"
+                    style={{ animationDelay:`${i * 70}ms` }}
+                  >
+                    <PropertyCard property={property} initialIsFavorite={favorites.includes(property.id)} />
+                  </div>
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="mt-14 flex items-center justify-center gap-2">
+                  <button
+                    className="page-btn"
+                    onClick={() => { setCurrentPage(p => Math.max(p-1,1)); window.scrollTo({top:0,behavior:'smooth'}) }}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                    .reduce<(number|'…')[]>((acc, p, idx, arr) => {
+                      if (idx > 0 && (p as number) - (arr[idx-1] as number) > 1) acc.push('…')
+                      acc.push(p); return acc
+                    }, [])
+                    .map((p, i) => p === '…'
+                      ? <span key={`e${i}`} style={{ padding:"0 4px",color:"hsl(var(--muted-foreground))" }}>…</span>
+                      : <button key={p} className={`page-btn${currentPage===p?" active":""}`} onClick={() => { setCurrentPage(p as number); window.scrollTo({top:0,behavior:'smooth'}) }}>{p}</button>
+                    )
+                  }
+
+                  <button
+                    className="page-btn"
+                    onClick={() => { setCurrentPage(p => Math.min(p+1,totalPages)); window.scrollTo({top:0,behavior:'smooth'}) }}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="empty-state py-24 text-center bg-secondary/20">
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-secondary">
+                <Building2 className="h-7 w-7 text-muted-foreground" style={{ opacity:.5 }} />
+              </div>
+              <h3 className="mb-2 font-bold text-foreground" style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"1.5rem" }}>
+                Aucun bien trouvé
+              </h3>
+              <p className="mb-8 text-muted-foreground" style={{ fontSize:".9rem" }}>
+                Essayez de reformuler votre recherche ou de retirer des filtres.
+              </p>
+              <Button onClick={clearFilters} className="gap-2 rounded-full px-6">
+                Voir tous les biens
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <Footer />
       </div>
-      <Footer />
-    </div>
+    </>
   )
 }

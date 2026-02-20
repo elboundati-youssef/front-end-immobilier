@@ -1,189 +1,343 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Building2, Users, Shield, Target, Award, Globe } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { Building2, Users, Shield, Target, Award, Globe, ArrowRight, Quote } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 
+/* ─── Hook intersection observer ─── */
+function useInView(threshold = 0.15) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [inView, setInView] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) { setInView(true); obs.disconnect() } },
+      { threshold }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [threshold])
+  return { ref, inView }
+}
+
+/* ─── Animated counter ─── */
+function AnimatedCounter({ target, duration = 1600 }: { target: string; duration?: number }) {
+  const [display, setDisplay] = useState("0")
+  const { ref, inView } = useInView(0.3)
+  useEffect(() => {
+    if (!inView) return
+    const num = parseInt(target.replace(/\D/g, ""))
+    const suffix = target.replace(/[\d,]/g, "")
+    let start = 0
+    const step = Math.ceil(num / (duration / 16))
+    const timer = setInterval(() => {
+      start = Math.min(start + step, num)
+      setDisplay(start.toLocaleString("fr-FR") + suffix)
+      if (start >= num) clearInterval(timer)
+    }, 16)
+    return () => clearInterval(timer)
+  }, [inView, target, duration])
+  return <span ref={ref}>{inView ? display : "0"}</span>
+}
+
+/* ─── Particules fixes ─── */
+const PARTICLES = [
+  { left: 6,  top: 15, delay: 0.0, dur: 7.2, w: 5, h: 4, op: 0.18 },
+  { left: 20, top: 62, delay: 1.5, dur: 9.1, w: 4, h: 6, op: 0.13 },
+  { left: 42, top: 28, delay: 2.7, dur: 6.8, w: 6, h: 5, op: 0.16 },
+  { left: 60, top: 78, delay: 0.9, dur: 8.4, w: 5, h: 7, op: 0.12 },
+  { left: 76, top: 38, delay: 3.3, dur: 10.0,w: 4, h: 4, op: 0.18 },
+  { left: 90, top: 20, delay: 1.8, dur: 7.5, w: 6, h: 5, op: 0.14 },
+  { left: 33, top: 85, delay: 4.2, dur: 9.6, w: 5, h: 6, op: 0.15 },
+  { left: 55, top: 10, delay: 2.1, dur: 11.0,w: 7, h: 4, op: 0.10 },
+]
+
 const values = [
-  {
-    icon: Shield,
-    title: "Confiance",
-    description: "Toutes nos annonces sont vérifiées pour garantir la fiabilité des informations.",
-  },
-  {
-    icon: Target,
-    title: "Simplicité",
-    description: "Une interface intuitive pour une recherche rapide et efficace de votre bien idéal.",
-  },
-  {
-    icon: Users,
-    title: "Proximité",
-    description: "Nous connectons acheteurs, locataires et professionnels de l'immobilier.",
-  },
-  {
-    icon: Award,
-    title: "Excellence",
-    description: "Un service premium avec un accompagnement personnalisé à chaque étape.",
-  },
+  { icon: Shield, title: "Confiance",   description: "Toutes nos annonces sont vérifiées pour garantir la fiabilité des informations." },
+  { icon: Target, title: "Simplicité",  description: "Une interface intuitive pour une recherche rapide et efficace de votre bien idéal." },
+  { icon: Users,  title: "Proximité",   description: "Nous connectons acheteurs, locataires et professionnels de l'immobilier." },
+  { icon: Award,  title: "Excellence",  description: "Un service premium avec un accompagnement personnalisé à chaque étape." },
 ]
 
 const team = [
-  { name: "Karim El Amrani", role: "Fondateur & CEO", initials: "KA" },
-  { name: "Leila Bennani", role: "Directrice Commerciale", initials: "LB" },
-  { name: "Omar Tazi", role: "Directeur Technique", initials: "OT" },
-  { name: "Nadia Fassi", role: "Responsable Marketing", initials: "NF" },
+  { name: "Karim El Amrani",  role: "Fondateur & CEO",           initials: "KA" },
+  { name: "Leila Bennani",    role: "Directrice Commerciale",    initials: "LB" },
+  { name: "Omar Tazi",        role: "Directeur Technique",       initials: "OT" },
+  { name: "Nadia Fassi",      role: "Responsable Marketing",     initials: "NF" },
+]
+
+const stats = [
+  { value: "5,000+", label: "Annonces",     icon: Building2 },
+  { value: "12,000+",label: "Utilisateurs", icon: Users },
+  { value: "8",      label: "Villes",       icon: Globe },
+  { value: "3,200+", label: "Transactions", icon: Award },
 ]
 
 export default function AProposPage() {
-  // État pour vérifier si l'utilisateur est connecté
   const [user, setUser] = useState<any>(null)
+  const [heroVisible, setHeroVisible] = useState(false)
+
+  const { ref: missionRef,  inView: missionInView  } = useInView()
+  const { ref: valuesRef,   inView: valuesInView   } = useInView()
+  const { ref: teamRef,     inView: teamInView     } = useInView()
+  const { ref: ctaRef,      inView: ctaInView      } = useInView()
 
   useEffect(() => {
+    const t = setTimeout(() => setHeroVisible(true), 80)
     const storedUser = localStorage.getItem("user")
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser))
-      } catch (e) {
-        console.error("Erreur parsing user", e)
-      }
-    }
+    if (storedUser) { try { setUser(JSON.parse(storedUser)) } catch {} }
+    return () => clearTimeout(t)
   }, [])
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap');
+        :root { --ease-expo: cubic-bezier(0.16,1,0.3,1); }
 
-      {/* Hero */}
-      <section className="bg-primary">
-        <div className="mx-auto max-w-7xl px-4 py-20 text-center lg:px-8">
-          <p className="mb-3 text-sm font-medium uppercase tracking-wider text-primary-foreground/70">A propos</p>
-          <h1 className="mb-4 font-serif text-4xl font-bold text-primary-foreground md:text-5xl text-balance">
-            La référence de l&apos;immobilier au Maroc
-          </h1>
-          <p className="mx-auto max-w-2xl text-lg leading-relaxed text-primary-foreground/80">
-            ImmoMaroc est né de la volonté de moderniser le marché immobilier marocain en offrant une plateforme fiable, transparente et accessible à tous.
-          </p>
-        </div>
-      </section>
+        /* Reveal */
+        .rv { opacity:0; transform:translateY(32px); transition:opacity .7s var(--ease-expo),transform .7s var(--ease-expo); }
+        .rv.on { opacity:1; transform:none; }
+        .d1{transition-delay:80ms;} .d2{transition-delay:160ms;}
+        .d3{transition-delay:240ms;} .d4{transition-delay:320ms;}
+        .d5{transition-delay:400ms;}
 
-      {/* Mission */}
-      <section className="mx-auto max-w-7xl px-4 py-16 lg:px-8">
-        <div className="grid items-center gap-12 lg:grid-cols-2">
-          <div>
-            <p className="mb-1 text-sm font-medium uppercase tracking-wider text-primary">Notre mission</p>
-            <h2 className="mb-4 font-serif text-3xl font-bold text-foreground">
-              Faciliter l&apos;accès à l&apos;immobilier pour tous
-            </h2>
-            <p className="mb-4 leading-relaxed text-muted-foreground">
-              Depuis notre création, nous avons pour objectif de démocratiser l&apos;accès à l&apos;information immobilière au Maroc. Nous croyons que chaque personne mérite de trouver le bien qui correspond à ses besoins et à son budget.
+        /* Fade from left */
+        .rv-left { opacity:0; transform:translateX(-40px); transition:opacity .8s var(--ease-expo),transform .8s var(--ease-expo); }
+        .rv-left.on { opacity:1; transform:none; }
+        .rv-right { opacity:0; transform:translateX(40px); transition:opacity .8s var(--ease-expo),transform .8s var(--ease-expo); transition-delay:120ms; }
+        .rv-right.on { opacity:1; transform:none; }
+
+        /* Hero words */
+        .hw { display:inline-block; opacity:0; transform:translateY(44px); transition:opacity .75s var(--ease-expo),transform .75s var(--ease-expo); }
+        .hv .hw { opacity:1; transform:none; }
+
+        /* Particles */
+        .pt { position:absolute; border-radius:50%; background:var(--primary); animation:ptf var(--dur,8s) ease-in-out infinite alternate; }
+        @keyframes ptf { 0%{transform:translateY(0) scale(1);} 100%{transform:translateY(-28px) scale(1.25);} }
+
+        /* Shimmer line */
+        @keyframes shimmer { 0%{background-position:-200% center;} 100%{background-position:200% center;} }
+        .shl { height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent); background-size:200% auto; animation:shimmer 2.5s linear infinite; }
+
+        /* Stat card */
+        .stat-card { transition:transform .3s var(--ease-expo),box-shadow .3s ease; cursor:default; }
+        .stat-card:hover { transform:translateY(-5px) scale(1.03); box-shadow:0 16px 40px -12px rgba(0,0,0,.12); }
+
+        /* Value card */
+        .val-card { transition:transform .3s var(--ease-expo),box-shadow .3s ease,border-color .3s; position:relative; overflow:hidden; }
+        .val-card::before { content:''; position:absolute; inset:0; opacity:0; transition:opacity .3s; }
+        .val-card:hover { transform:translateY(-4px); box-shadow:0 12px 36px -10px rgba(0,0,0,.1); }
+        .val-card:hover::before { opacity:1; }
+
+        /* Quote block */
+        .quote-mark { opacity:.08; position:absolute; top:16px; right:16px; pointer-events:none; }
+
+        /* CTA btn */
+        .cta-btn { transition:transform .25s var(--ease-expo),box-shadow .25s; }
+        .cta-btn:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.2); }
+      `}</style>
+
+      <div className="min-h-screen bg-background" style={{ fontFamily:"'DM Sans',sans-serif" }}>
+        <Navbar />
+
+        {/* ── Hero ── */}
+        <section className="relative overflow-hidden bg-primary py-24">
+          {PARTICLES.map((p, i) => (
+            <span key={i} className="pt" style={{
+              left:`${p.left}%`, top:`${p.top}%`,
+              animationDelay:`${p.delay}s`, ["--dur" as any]:`${p.dur}s`,
+              width:`${p.w}px`, height:`${p.h}px`, opacity:p.op,
+            }} />
+          ))}
+          <div className="pointer-events-none absolute -right-16 -top-16 h-72 w-72 rounded-full border border-white/10" />
+          <div className="pointer-events-none absolute -left-10 bottom-0 h-48 w-48 rounded-full border border-white/10" />
+          <div className="pointer-events-none absolute left-1/2 top-1/2 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/[0.03]" />
+
+          <div className={`relative mx-auto max-w-7xl px-4 text-center lg:px-8 ${heroVisible?"hv":""}`}>
+            <p
+              className="mb-3 text-sm font-medium uppercase tracking-widest text-primary-foreground/60"
+              style={{ opacity:heroVisible?1:0, transition:"opacity .6s ease .1s" }}
+            >
+              À propos
             </p>
-            <p className="leading-relaxed text-muted-foreground">
-              Notre plateforme met en relation acheteurs, locataires, propriétaires et agences immobilières dans un environnement sécurisé et transparent. Nous vérifions chaque annonce pour garantir la qualité des informations.
+            <h1
+              className="mb-5 font-bold text-primary-foreground"
+              style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(2.4rem,5.5vw,4rem)", lineHeight:1.1 }}
+            >
+              <span className="hw" style={{ transitionDelay:"200ms" }}>
+                La référence de l&apos;immobilier au Maroc
+              </span>
+            </h1>
+            <div className="shl mx-auto my-6 w-20" />
+            <p
+              className="mx-auto max-w-2xl text-lg leading-relaxed text-primary-foreground/80"
+              style={{ opacity:heroVisible?1:0, transform:heroVisible?"none":"translateY(16px)", transition:"all .8s var(--ease-expo) .45s" }}
+            >
+              ImmoMaroc est né de la volonté de moderniser le marché immobilier marocain en offrant une plateforme fiable, transparente et accessible à tous.
             </p>
           </div>
+        </section>
 
-          <div className="grid grid-cols-2 gap-4">
-            {[
-              { value: "5,000+", label: "Annonces", icon: Building2 },
-              { value: "12,000+", label: "Utilisateurs", icon: Users },
-              { value: "8", label: "Villes", icon: Globe },
-              { value: "3,200+", label: "Transactions", icon: Award },
-            ].map((stat) => {
-              const Icon = stat.icon
-              return (
-                <div key={stat.label} className="rounded-xl border border-border bg-card p-6 text-center">
-                  <Icon className="mx-auto mb-3 h-6 w-6 text-primary" />
-                  <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
+        {/* ── Mission ── */}
+        <section className="mx-auto max-w-7xl px-4 py-20 lg:px-8" ref={missionRef}>
+          <div className="grid items-center gap-14 lg:grid-cols-2">
+
+            {/* Text */}
+            <div className={`rv-left${missionInView?" on":""}`}>
+              <p className="mb-2 flex items-center gap-2 text-sm font-medium uppercase tracking-widest text-primary">
+                <span className="block h-px w-6 bg-primary" /> Notre mission
+              </p>
+              <h2 className="mb-5 font-bold text-foreground" style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(1.7rem,3.5vw,2.4rem)" }}>
+                Faciliter l&apos;accès à l&apos;immobilier pour tous
+              </h2>
+              <p className="mb-4 leading-relaxed text-muted-foreground">
+                Depuis notre création, nous avons pour objectif de démocratiser l&apos;accès à l&apos;information immobilière au Maroc. Nous croyons que chaque personne mérite de trouver le bien qui correspond à ses besoins et à son budget.
+              </p>
+              <p className="leading-relaxed text-muted-foreground">
+                Notre plateforme met en relation acheteurs, locataires, propriétaires et agences immobilières dans un environnement sécurisé et transparent. Nous vérifions chaque annonce pour garantir la qualité des informations.
+              </p>
+
+              {/* Inline quote */}
+              <div className="mt-8 rounded-2xl border border-border bg-secondary/50 p-5 relative">
+                <Quote className="quote-mark h-10 w-10 text-primary" />
+                <p className="text-sm italic text-muted-foreground leading-relaxed">
+                  "Trouver son chez-soi ne devrait jamais être une épreuve — c'est notre raison d'être."
+                </p>
+                <p className="mt-2 text-xs font-semibold text-primary">— Karim El Amrani, Fondateur</p>
+              </div>
+            </div>
+
+            {/* Stats grid */}
+            <div className={`rv-right${missionInView?" on":""} grid grid-cols-2 gap-4`}>
+              {stats.map(({ value, label, icon: Icon }, i) => (
+                <div
+                  key={label}
+                  className={`stat-card rounded-2xl border border-border bg-card p-6 text-center rv${missionInView?" on":""} d${i+1}`}
+                >
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                    <Icon className="h-6 w-6 text-primary" />
+                  </div>
+                  <p className="text-3xl font-bold text-foreground" style={{ fontFamily:"'Cormorant Garamond',serif" }}>
+                    <AnimatedCounter target={value} />
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">{label}</p>
                 </div>
-              )
-            })}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Values */}
-      <section className="bg-secondary/50">
-        <div className="mx-auto max-w-7xl px-4 py-16 lg:px-8">
-          <div className="mb-10 text-center">
-            <p className="mb-1 text-sm font-medium uppercase tracking-wider text-primary">Nos valeurs</p>
-            <h2 className="font-serif text-3xl font-bold text-foreground md:text-4xl">Ce qui nous anime</h2>
-          </div>
+        {/* ── Values ── */}
+        <section className="bg-secondary/50 py-20" ref={valuesRef}>
+          <div className="mx-auto max-w-7xl px-4 lg:px-8">
+            <div className={`mb-12 text-center rv${valuesInView?" on":""}`}>
+              <p className="mb-2 flex items-center justify-center gap-2 text-sm font-medium uppercase tracking-widest text-primary">
+                <span className="block h-px w-6 bg-primary" /> Nos valeurs <span className="block h-px w-6 bg-primary" />
+              </p>
+              <h2 className="font-bold text-foreground" style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(1.8rem,4vw,2.6rem)" }}>
+                Ce qui nous anime
+              </h2>
+            </div>
 
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {values.map((value) => {
-              const Icon = value.icon
-              return (
-                <div key={value.title} className="rounded-xl border border-border bg-card p-6">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+              {values.map(({ icon: Icon, title, description }, i) => (
+                <div
+                  key={title}
+                  className={`val-card rounded-2xl border border-border bg-card p-6 rv${valuesInView?" on":""} d${i+1}`}
+                >
                   <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
                     <Icon className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="mb-2 font-semibold text-foreground">{value.title}</h3>
-                  <p className="text-sm leading-relaxed text-muted-foreground">{value.description}</p>
+                  <h3 className="mb-2 font-semibold text-foreground" style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"1.15rem" }}>
+                    {title}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
                 </div>
-              )
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Team */}
-      <section className="mx-auto max-w-7xl px-4 py-16 lg:px-8">
-        <div className="mb-10 text-center">
-          <p className="mb-1 text-sm font-medium uppercase tracking-wider text-primary">Notre équipe</p>
-          <h2 className="font-serif text-3xl font-bold text-foreground md:text-4xl">Des passionnés à votre service</h2>
-        </div>
-
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {team.map((member) => (
-            <div key={member.name} className="rounded-xl border border-border bg-card p-6 text-center">
-              <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-xl font-bold text-primary">
-                {member.initials}
-              </div>
-              <h3 className="font-semibold text-foreground">{member.name}</h3>
-              <p className="text-sm text-muted-foreground">{member.role}</p>
+              ))}
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="bg-primary">
-        <div className="mx-auto max-w-7xl px-4 py-16 text-center lg:px-8">
-          <h2 className="mb-4 font-serif text-3xl font-bold text-primary-foreground">
-            {user ? "Besoin d'aide ?" : "Rejoignez ImmoMaroc"}
-          </h2>
-          <p className="mx-auto mb-8 max-w-xl text-lg text-primary-foreground/80">
-            {user 
-              ? "Notre équipe est à votre disposition pour vous accompagner dans tous vos projets immobiliers."
-              : "Que vous soyez acheteur, locataire ou professionnel, notre plateforme est faite pour vous."
-            }
-          </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            {/* On affiche le bouton d'inscription UNIQUEMENT si l'utilisateur n'est PAS connecté */}
-            {!user && (
-              <Link href="/connexion">
-                <Button size="lg" variant="secondary">Créer un compte</Button>
-              </Link>
-            )}
-            
-            <Link href="/contact">
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="bg-[#b87355] border-white/20 text-white hover:bg-[#5D4037] hover:text-white"
-              >
-                Nous contacter
-              </Button>
-            </Link>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <Footer />
-    </div>
+        {/* ── Team ── */}
+        <section className="mx-auto max-w-7xl px-4 py-20 lg:px-8" ref={teamRef}>
+          <div className={`mb-12 text-center rv${teamInView?" on":""}`}>
+            <p className="mb-2 flex items-center justify-center gap-2 text-sm font-medium uppercase tracking-widest text-primary">
+              <span className="block h-px w-6 bg-primary" /> Notre équipe <span className="block h-px w-6 bg-primary" />
+            </p>
+            <h2 className="font-bold text-foreground" style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(1.8rem,4vw,2.6rem)" }}>
+              Des passionnés à votre service
+            </h2>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {team.map(({ name, role, initials }, i) => (
+              <div
+                key={name}
+                className={`team-card rounded-2xl border border-border bg-card p-8 text-center rv${teamInView?" on":""} d${i+1}`}
+              >
+                <div
+                  className="team-avatar mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-xl font-bold text-primary border border-primary/20"
+                >
+                  {initials}
+                </div>
+                <h3 className="font-semibold text-foreground" style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"1.1rem" }}>
+                  {name}
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">{role}</p>
+                <div className="mx-auto mt-4 h-px w-8 rounded-full bg-primary/30" />
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── CTA ── */}
+        <section className="relative overflow-hidden bg-primary" ref={ctaRef}>
+          <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full border border-white/10" />
+          <div className="pointer-events-none absolute -left-8 bottom-0 h-48 w-48 rounded-full border border-white/10" />
+          <div className="pointer-events-none absolute left-1/2 top-0 h-px w-1/2 -translate-x-1/2" style={{ background:"linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent)" }} />
+
+          <div className="relative mx-auto max-w-7xl px-4 py-20 text-center lg:px-8">
+            <div className={`rv${ctaInView?" on":""}`}>
+              <h2
+                className="mb-4 font-bold text-primary-foreground"
+                style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(1.8rem,4vw,2.6rem)" }}
+              >
+                {user ? "Besoin d'aide ?" : "Rejoignez ImmoMaroc"}
+              </h2>
+              <p className="mx-auto mb-10 max-w-xl text-lg text-primary-foreground/80 leading-relaxed">
+                {user
+                  ? "Notre équipe est à votre disposition pour vous accompagner dans tous vos projets immobiliers."
+                  : "Que vous soyez acheteur, locataire ou professionnel, notre plateforme est faite pour vous."}
+              </p>
+              <div className="flex flex-wrap justify-center gap-4">
+                {!user && (
+                  <Link href="/connexion">
+                    <Button size="lg" variant="secondary" className="cta-btn gap-2 rounded-full px-7">
+                      Créer un compte <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                )}
+                <Link href="/contact">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="bg-[#b87355] cta-btn gap-2 rounded-full px-7 border-white/30 text-white hover:bg-white/10 hover:text-white"
+                  >
+                    Nous contacter <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <Footer />
+      </div>
+    </>
   )
 }
