@@ -16,6 +16,9 @@ const ITEMS_PER_PAGE = 6;
 export function ClientDashboard() {
   const [clientTab, setClientTab] = useState<ClientTab>("favoris")
   
+  // États des données utilisateur
+  const [currentUser, setCurrentUser] = useState<any>(null)
+
   // États pour les Favoris
   const [favorites, setFavorites] = useState<any[]>([])
   const [loadingFav, setLoadingFav] = useState(false)
@@ -30,6 +33,9 @@ export function ClientDashboard() {
 
   // --- CHARGEMENT DES DONNÉES SELON L'ONGLET ---
   useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) setCurrentUser(JSON.parse(userStr));
+
     if (clientTab === "favoris") {
         fetchFavorites()
     } else if (clientTab === "messages") {
@@ -67,12 +73,18 @@ export function ClientDashboard() {
     }
   }
 
-  // --- LOGIQUE MESSAGES (ENVOYÉS PAR LE CLIENT) ---
+  // --- LOGIQUE MESSAGES (UNIFIÉE CLIENT) ---
   const fetchSentMessages = async () => {
     setLoadingMsg(true)
     try {
-      const res = await api.get('/my-sent-messages')
-      setMessages(res.data)
+      const [sent, received] = await Promise.all([
+          api.get('/my-sent-messages'),
+          api.get('/my-received-messages').catch(() => ({ data: [] }))
+      ]);
+      const allMsgs = [...sent.data, ...received.data];
+      
+      const uniqueMsgs = Array.from(new Map(allMsgs.map(m => [m.id, m])).values());
+      setMessages(uniqueMsgs);
     } catch (err) {
       console.error("Erreur récupération messages", err)
     } finally {
@@ -88,11 +100,8 @@ export function ClientDashboard() {
       
       setMessages(prev => {
           const filteredMessages = prev.filter(m => m.id !== messageId);
-          
-          // Vérifie s'il reste des messages pour l'annonce actuellement sélectionnée
           const remainingForContact = filteredMessages.filter(m => m.property_id == selectedPropertyId);
           
-          // S'il n'y a plus aucun message, on ferme le chat pour éviter le bug d'affichage
           if (remainingForContact.length === 0) {
               setSelectedPropertyId(null);
           }
@@ -131,8 +140,9 @@ export function ClientDashboard() {
       (a: any, b: any) => b.latestMessageDate.getTime() - a.latestMessageDate.getTime()
   );
 
-  const activeChatMessages = selectedPropertyId && groupedConversations[selectedPropertyId] 
-      ? groupedConversations[selectedPropertyId].messages.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+  const activeThread = selectedPropertyId ? groupedConversations[selectedPropertyId] : null;
+  const activeChatMessages = activeThread 
+      ? activeThread.messages.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
       : [];
 
   const handleSendReply = async () => {
@@ -140,13 +150,11 @@ export function ClientDashboard() {
     
     setSendingReply(true);
     try {
-        const previousMessage = activeChatMessages.length > 0 ? activeChatMessages[0] : null;
-
         const payload = {
             message: replyText,
-            name: previousMessage?.name || "Client", 
-            email: previousMessage?.email || "client@email.com", 
-            phone: previousMessage?.phone || "" 
+            name: currentUser?.name || "Client", 
+            email: currentUser?.email || "client@email.com", 
+            phone: currentUser?.phone || "" 
         };
 
         const response = await api.post(`/properties/${selectedPropertyId}/message`, payload);
@@ -156,7 +164,7 @@ export function ClientDashboard() {
             property_id: selectedPropertyId,
             message: replyText,
             created_at: new Date().toISOString(),
-            is_from_client: true, // Tag explicite
+            is_from_client: true,
             name: payload.name,
             email: payload.email
         };
@@ -165,7 +173,7 @@ export function ClientDashboard() {
         setReplyText("");
     } catch (e: any) {
         console.error("Erreur détaillée:", e.response?.data || e.message);
-        alert("Erreur : Impossible d'envoyer. Vérifie la console (F12) pour voir l'erreur exacte.");
+        alert("Erreur : Impossible d'envoyer.");
     } finally {
         setSendingReply(false);
     }
@@ -195,9 +203,10 @@ export function ClientDashboard() {
 
   return (
     <>
-      <div className="mb-6 flex gap-1 overflow-x-auto rounded-lg border border-border bg-card p-1">
+      {/* 🌟 ONGLET NAVIGATION 🌟 */}
+      <div className="mb-6 flex gap-2 overflow-x-auto rounded-lg border border-border bg-card p-1.5 custom-scrollbar">
         {[
-          { key: "favoris", label: "Favoris", icon: Heart },
+          { key: "favoris", label: "Mes Favoris", icon: Heart },
           { key: "alertes", label: "Alertes", icon: Bell },
           { key: "messages", label: "Messages", icon: MessageSquare },
         ].map((tab) => {
@@ -209,14 +218,14 @@ export function ClientDashboard() {
                   setClientTab(tab.key as ClientTab);
                   if (tab.key !== "messages") setSelectedPropertyId(null);
               }}
-              className={`flex items-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-colors ${
+              className={`flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors whitespace-nowrap flex-1 sm:flex-none ${
                 clientTab === tab.key
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               }`}
             >
-              <Icon className="h-4 w-4" />
-              {tab.label}
+              <Icon className="h-4 w-4 shrink-0" />
+              <span>{tab.label}</span>
             </button>
           )
         })}
@@ -227,41 +236,49 @@ export function ClientDashboard() {
             {loadingFav ? (
                 <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
             ) : favorites.length === 0 ? (
-                <div className="text-center py-12 border border-dashed rounded-xl text-muted-foreground">Vous n&apos;avez pas encore de favoris.</div>
+                <div className="text-center py-12 border border-dashed rounded-xl text-muted-foreground bg-card shadow-sm">Vous n'avez pas encore de favoris.</div>
             ) : (
-                <div className="flex flex-col gap-6">
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        {currentFavorites.map((p) => {
-                            const imgUrl = getImageUrl(p.images);
-                            return (
-                                <div key={p.id} className="group relative overflow-hidden rounded-xl border border-border bg-card transition-all hover:shadow-md">
-                                    <div className="relative h-48 w-full overflow-hidden">
-                                        <Image src={imgUrl} alt={p.title} fill className="object-cover transition-transform group-hover:scale-105" unoptimized />
-                                        <button 
-                                            onClick={(e) => { e.preventDefault(); removeFavorite(p.id); }}
-                                            className="absolute right-2 top-2 rounded-full bg-white p-1.5 text-red-500 transition-colors hover:bg-white/90 z-20 shadow-sm"
-                                        >
-                                            <Heart className="h-4 w-4 fill-current" />
-                                        </button>
-                                        <Link href={`/biens/${p.id}`} className="absolute inset-0 z-10" />
+                <div className="flex flex-col gap-4">
+                    {currentFavorites.map((p) => {
+                        const imgUrl = getImageUrl(p.images);
+                        return (
+                            <div key={p.id} className="flex flex-col sm:flex-row gap-4 rounded-xl border border-border bg-card p-4 transition-all shadow-sm hover:shadow-md group relative">
+                                
+                                <Link href={`/biens/${p.id}`} className="relative h-48 sm:h-32 w-full sm:w-48 shrink-0 overflow-hidden rounded-lg bg-secondary block hover:opacity-90">
+                                    <Image src={imgUrl} alt={p.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" unoptimized />
+                                </Link>
+                                
+                                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                    <Link href={`/biens/${p.id}`} className="text-lg font-semibold hover:text-primary hover:underline truncate mb-1 pr-12 sm:pr-0">
+                                        {p.title}
+                                    </Link>
+                                    <div className="text-sm text-muted-foreground flex items-center gap-1.5 mb-2">
+                                        <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+                                        <span className="truncate">{p.city}</span>
                                     </div>
-                                    <div className="p-4">
-                                        <Link href={`/biens/${p.id}`} className="block font-semibold text-foreground hover:text-primary mb-1 truncate">{p.title}</Link>
-                                        <p className="text-sm text-muted-foreground mb-2 truncate flex items-center gap-1"><MapPin className="h-3 w-3" /> {p.city}</p>
-                                        <p className="font-bold text-primary">{formatPrice(p.price, p.transaction_type)}</p>
-                                    </div>
+                                    <p className="font-bold text-primary mt-auto">{formatPrice(p.price, p.transaction_type)}</p>
                                 </div>
-                            )
-                        })}
-                    </div>
-                    {totalPages > 1 && (
-                        <div className="mt-4 flex items-center justify-center gap-2">
-                            <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
-                            <div className="flex items-center gap-1">
-                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                                    <Button key={page} variant={currentPage === page ? "default" : "outline"} className="h-9 w-9 p-0" onClick={() => setCurrentPage(page)}>{page}</Button>
-                                ))}
+                                
+                                <div className="absolute right-4 top-4 sm:relative sm:right-auto sm:top-auto flex sm:flex-col items-center justify-center shrink-0 z-20">
+                                    <Button 
+                                        variant="outline" 
+                                        size="icon" 
+                                        className="rounded-full bg-white/90 text-red-500 hover:bg-red-50 hover:text-red-600 shadow-sm transition-transform hover:scale-110 h-10 w-10 border-red-100"
+                                        onClick={(e) => { e.preventDefault(); removeFavorite(p.id); }}
+                                        title="Retirer des favoris"
+                                    >
+                                        <Heart className="h-5 w-5 fill-current" />
+                                    </Button>
+                                </div>
+
                             </div>
+                        )
+                    })}
+                    
+                    {totalPages > 1 && (
+                        <div className="mt-6 flex items-center justify-center gap-2">
+                            <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
+                            <span className="text-sm px-2 text-muted-foreground">Page {currentPage} sur {totalPages}</span>
                             <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages}><ChevronRight className="h-4 w-4" /></Button>
                         </div>
                     )}
@@ -276,16 +293,17 @@ export function ClientDashboard() {
             { text: "Nouveau bien correspondant à votre recherche : Villa à Marrakech", time: "Il y a 2h" },
             { text: "Baisse de prix sur un bien en favori : Appartement à Casablanca", time: "Il y a 5h" },
           ].map((alert, i) => (
-            <div key={i} className="flex items-start gap-3 rounded-xl border border-border bg-card p-4">
+            <div key={i} className="flex items-start gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10"><Bell className="h-4 w-4 text-primary" /></div>
-              <div className="flex-1"><p className="text-sm text-foreground">{alert.text}</p><p className="text-xs text-muted-foreground">{alert.time}</p></div>
+              <div className="flex-1"><p className="text-sm text-foreground">{alert.text}</p><p className="text-xs text-muted-foreground mt-1">{alert.time}</p></div>
             </div>
           ))}
         </div>
       )}
 
+      {/* 🌟 ONGLET MESSAGES 🌟 */}
       {clientTab === "messages" && (
-        <div className="flex flex-col md:flex-row gap-4 h-[600px] border border-border rounded-xl bg-card overflow-hidden">
+        <div className="flex flex-col md:flex-row h-[75vh] min-h-[500px] border border-border rounded-xl bg-card overflow-hidden shadow-sm relative">
           
           {loadingMsg ? (
             <div className="flex-1 flex justify-center items-center"><Loader2 className="animate-spin text-primary" /></div>
@@ -293,8 +311,9 @@ export function ClientDashboard() {
             <div className="flex-1 flex items-center justify-center text-muted-foreground">Vous n'avez envoyé aucun message.</div>
           ) : (
             <>
-              <div className={`w-full md:w-1/3 border-r border-border flex flex-col ${selectedPropertyId ? 'hidden md:flex' : 'flex'}`}>
-                <div className="p-4 border-b border-border bg-secondary/30 font-semibold">Mes discussions</div>
+              {/* LISTE DES CONVERSATIONS */}
+              <div className={`w-full md:w-1/3 border-r border-border flex flex-col bg-card absolute md:relative inset-0 z-20 md:z-0 ${selectedPropertyId ? 'hidden md:flex' : 'flex'}`}>
+                <div className="p-4 border-b border-border bg-secondary/30 font-semibold shrink-0">Mes discussions</div>
                 <div className="overflow-y-auto flex-1 p-2 space-y-1">
                   {conversationList.map((contact: any) => (
                     <button
@@ -319,20 +338,21 @@ export function ClientDashboard() {
                 </div>
               </div>
 
-              <div className={`flex-1 flex flex-col bg-[#f0f2f5] dark:bg-secondary/10 relative ${!selectedPropertyId ? 'hidden md:flex' : 'flex'}`}>
-                {selectedPropertyId && groupedConversations[selectedPropertyId] ? (
+              {/* ZONE DE CHAT */}
+              <div className={`flex-1 flex flex-col bg-[#f0f2f5] dark:bg-secondary/10 absolute md:relative inset-0 z-30 md:z-0 h-full w-full ${!selectedPropertyId ? 'hidden md:flex' : 'flex'}`}>
+                {activeThread ? (
                   <>
-                    <div className="p-4 bg-card border-b border-border flex items-center justify-between shadow-sm z-10">
-                      <div className="flex items-center gap-3">
+                    <div className="p-3 md:p-4 bg-card border-b border-border flex items-center justify-between shadow-sm z-10 shrink-0">
+                      <div className="flex items-center gap-3 min-w-0">
                         <Button variant="ghost" size="icon" className="md:hidden shrink-0" onClick={() => setSelectedPropertyId(null)}>
                             <ChevronLeft className="h-5 w-5" />
                         </Button>
                         <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center text-muted-foreground shrink-0">
                           <User className="h-5 w-5" />
                         </div>
-                        <div className="min-w-0 pr-4">
-                          <h3 className="font-semibold text-foreground truncate">{groupedConversations[selectedPropertyId]?.agency_name}</h3>
-                          <p className="text-xs text-muted-foreground truncate">Annonce : {groupedConversations[selectedPropertyId]?.property_title}</p>
+                        <div className="min-w-0 pr-2">
+                          <h3 className="font-semibold text-foreground truncate">{activeThread.agency_name}</h3>
+                          <p className="text-xs text-muted-foreground truncate">Annonce : {activeThread.property_title}</p>
                         </div>
                       </div>
                       <Link href={`/biens/${selectedPropertyId}`}>
@@ -341,25 +361,25 @@ export function ClientDashboard() {
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col">
-                      {activeChatMessages.map((msg: any) => {
-                          // LA VRAIE LOGIQUE ICI : Si le message vient de "Agence", c'est l'autre. Sinon, c'est MOI (le client).
-                          const isMe = msg.name !== "Agence" && msg.is_from_agency !== true; 
+                      {activeChatMessages.map((msg: any, index: number) => {
+                          
+                          // 🌟 CORRECTION DE LA COULEUR DES MESSAGES 🌟
+                          // C'est MOI (marron) SEULEMENT si le nom n'est pas "Agence" ni "Propriétaire".
+                          const isMe = msg.name !== "Agence" && msg.name !== "Propriétaire" && msg.is_from_agency !== true; 
                           
                           return (
-                            <div key={msg.id} className={`flex flex-col group max-w-[80%] ${isMe ? 'self-end items-end' : 'self-start items-start'}`}>
+                            <div key={`${msg.id}-${index}`} className={`flex flex-col group max-w-[85%] md:max-w-[75%] ${isMe ? 'self-end items-end' : 'self-start items-start'}`}>
                                 
                                 <div className="flex items-center gap-2">
                                   {isMe && (
                                     <button 
                                       onClick={() => handleDeleteMessage(msg.id)}
-                                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full"
-                                      title="Supprimer le message"
+                                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full hidden md:block"
                                     >
                                       <Trash2 className="h-3.5 w-3.5" />
                                     </button>
                                   )}
 
-                                  {/* C'est ICI qu'on gère le bg-primary pour MOI et bg-card pour l'AUTRE */}
                                   <div className={`p-3 rounded-2xl text-sm shadow-sm ${
                                       isMe 
                                       ? 'bg-primary text-primary-foreground rounded-tr-sm' 
@@ -372,8 +392,7 @@ export function ClientDashboard() {
                                   {!isMe && (
                                     <button 
                                       onClick={() => handleDeleteMessage(msg.id)}
-                                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full"
-                                      title="Supprimer le message"
+                                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full hidden md:block"
                                     >
                                       <Trash2 className="h-3.5 w-3.5" />
                                     </button>
@@ -388,26 +407,23 @@ export function ClientDashboard() {
                       })}
                     </div>
 
-                    <div className="p-4 bg-card border-t border-border">
-                        <form 
-                            onSubmit={(e) => { e.preventDefault(); handleSendReply(); }} 
-                            className="flex items-center gap-2"
-                        >
+                    <div className="p-3 bg-card border-t border-border shrink-0 mt-auto">
+                        <form onSubmit={(e) => { e.preventDefault(); handleSendReply(); }} className="flex items-center gap-2">
                             <input 
-                                type="text"
-                                placeholder="Écrire un message..."
-                                className="flex-1 rounded-full border border-border bg-secondary/50 px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary"
-                                value={replyText}
-                                onChange={(e) => setReplyText(e.target.value)}
+                                type="text" 
+                                placeholder="Écrire un message..." 
+                                className="flex-1 rounded-full border border-border bg-secondary/50 px-4 py-3 md:py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary" 
+                                value={replyText} 
+                                onChange={(e) => setReplyText(e.target.value)} 
                             />
-                            <Button type="submit" size="icon" className="rounded-full shrink-0" disabled={!replyText.trim() || sendingReply}>
+                            <Button type="submit" size="icon" className="rounded-full shrink-0 h-10 w-10 md:h-9 md:w-9" disabled={!replyText.trim() || sendingReply}>
                                 {sendingReply ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 ml-0.5" />}
                             </Button>
                         </form>
                     </div>
                   </>
                 ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-6 text-center">
+                  <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-6 text-center hidden md:flex">
                     <MessageSquare className="h-12 w-12 mb-4 opacity-20" />
                     <p>Sélectionnez une discussion pour afficher les messages.</p>
                   </div>

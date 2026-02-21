@@ -3,12 +3,20 @@
 import { useState, useEffect, useRef, use } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { Upload, Plus, Check, Loader2, AlertCircle, FileImage, X, ArrowLeft, Trash2 } from "lucide-react"
+// 🌟 IMPORT DYNAMIQUE DE NEXT.JS 🌟
+import dynamic from 'next/dynamic'
+import { Upload, Plus, Check, Loader2, AlertCircle, FileImage, X, ArrowLeft, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { cities, propertyTypes, transactionTypes } from "@/lib/data"
 import api from "@/services/api"
+
+// 🌟 CHARGEMENT SANS SSR (Résout l'erreur 'window is not defined') 🌟
+const MapPicker = dynamic(() => import('@/components/MapPicker'), { 
+    ssr: false, 
+    loading: () => <div className="h-full w-full flex items-center justify-center bg-secondary/50"><Loader2 className="animate-spin text-primary" /></div>
+})
 
 const equipmentsList = [
   "Parking", "Piscine", "Jardin", "Ascenseur", "Climatisation",
@@ -16,11 +24,25 @@ const equipmentsList = [
   "Vue mer", "Proche ecoles", "Meuble",
 ]
 
+const cityCoordinates: Record<string, [number, number]> = {
+    "Tanger": [35.7595, -5.8340],
+    "Casablanca": [33.5731, -7.5898],
+    "Rabat": [34.0209, -6.8416],
+    "Marrakech": [31.6295, -7.9811],
+    "Agadir": [30.4278, -9.5981],
+    "Fes": [34.0331, -5.0003],
+    "Meknes": [33.8935, -5.5547],
+    "Oujda": [34.6814, -1.9086],
+    "Tetouan": [35.5784, -5.3684],
+    "Al Hoceima": [35.2472, -3.9317],
+    "Nador": [35.1681, -2.9335],
+    "Kenitra": [34.2610, -6.5802]
+}
+
 const MAX_IMAGES = 5;
 const API_URL = "http://127.0.0.1:8000";
 
 export default function ModifierPage({ params }: { params: Promise<{ id: string }> }) {
-  // Déballage des params (Next.js 15)
   const { id } = use(params)
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -29,10 +51,12 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
   const [loadingSubmit, setLoadingSubmit] = useState(false)
   const [error, setError] = useState("")
   
-  // Images existantes (URLs venant du backend)
   const [existingImages, setExistingImages] = useState<string[]>([])
-  // Nouvelles images (Fichiers uploadés)
   const [newFiles, setNewFiles] = useState<File[]>([])
+
+  // --- ÉTATS POUR LA CARTE ---
+  const [mapCenter, setMapCenter] = useState<[number, number]>([35.7595, -5.8340])
+  const [markerPosition, setMarkerPosition] = useState<any>(null)
 
   const [formData, setFormData] = useState({
     title: "",
@@ -49,21 +73,18 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
     equipments: [] as string[],
   })
 
-  // 1. Charger les données du bien
   useEffect(() => {
     const fetchProperty = async () => {
       try {
         const res = await api.get(`/properties/${id}`)
         const data = res.data
 
-        // Parsing des équipements
         let loadedEquipments: string[] = [];
         if (Array.isArray(data.equipments)) loadedEquipments = data.equipments;
         else if (typeof data.equipments === 'string') {
              try { loadedEquipments = JSON.parse(data.equipments); } catch (e) {}
         }
 
-        // Parsing des images existantes
         let loadedImages: string[] = [];
         if (Array.isArray(data.images)) loadedImages = data.images;
         else if (typeof data.images === 'string') {
@@ -87,6 +108,18 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
 
         setExistingImages(loadedImages)
 
+        // CHARGEMENT DU GPS EXISTANT (On a besoin de L dynamiquement ici aussi)
+        if (data.latitude && data.longitude) {
+            import('leaflet').then((L) => {
+                const lat = parseFloat(data.latitude);
+                const lng = parseFloat(data.longitude);
+                setMarkerPosition(L.latLng(lat, lng));
+                setMapCenter([lat, lng]);
+            });
+        } else if (data.city && cityCoordinates[data.city]) {
+            setMapCenter(cityCoordinates[data.city]);
+        }
+
       } catch (err) {
         console.error(err)
         setError("Impossible de charger les informations du bien.")
@@ -98,14 +131,19 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
     if (id) fetchProperty()
   }, [id])
 
-  // --- Helpers ---
   const getImageUrl = (path: string) => {
     if (path.startsWith("http") || path.startsWith("/images")) return path;
     return `${API_URL}${path}`;
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value })
+    
+    if (name === 'city' && cityCoordinates[value]) {
+        setMapCenter(cityCoordinates[value]);
+        setMarkerPosition(null); 
+    }
   }
 
   const toggleEquipment = (eq: string) => {
@@ -117,14 +155,9 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
     }))
   }
 
-  // --- Gestion des nouvelles images ---
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const files = Array.from(e.target.files)
-      
-      // On calcule combien on peut en ajouter
-      // Note: Si on ajoute de nouvelles images, le backend remplace TOUT
-      // Donc la limite s'applique uniquement aux nouvelles images dans ce contexte
       const remainingSlots = MAX_IMAGES - newFiles.length;
 
       if (remainingSlots <= 0) {
@@ -152,7 +185,6 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
     fileInputRef.current?.click()
   }
 
-  // --- Soumission ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoadingSubmit(true)
@@ -160,21 +192,24 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
 
     try {
       const data = new FormData()
-      
-      // ASTUCE POUR LARAVEL : Simuler un PUT via POST
       data.append("_method", "PUT")
 
       Object.entries(formData).forEach(([key, value]) => {
         if (key === 'equipments') {
-            // Laravel attend souvent du JSON pour les tableaux en FormData ou array syntax
-            // Ici on envoie array syntax pour rester cohérent avec le create
             formData.equipments.forEach(eq => data.append('equipments[]', eq))
         } else {
             data.append(key, value as string)
         }
       })
 
-      // Ajouter les nouvelles images
+      if (markerPosition) {
+          data.append('latitude', markerPosition.lat.toString());
+          data.append('longitude', markerPosition.lng.toString());
+      } else {
+          data.append('latitude', '');
+          data.append('longitude', '');
+      }
+
       newFiles.forEach((file) => {
         data.append('images[]', file)
       })
@@ -183,8 +218,7 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
         headers: { "Content-Type": "multipart/form-data" },
       })
       
-      // Succès
-      router.push("/tableau-de-bord") // Retour au dashboard
+      router.push("/tableau-de-bord") 
       
     } catch (err: any) {
       console.error(err)
@@ -222,45 +256,25 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           
-          {/* --- Informations générales --- */}
           <div className="rounded-xl border border-border bg-card p-6">
             <h2 className="mb-4 font-serif text-xl font-bold text-foreground">Informations générales</h2>
             <div className="flex flex-col gap-4">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground">Titre</label>
-                <input
-                  type="text"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleChange}
-                  required
-                  className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
+                <input type="text" name="title" value={formData.title} onChange={handleChange} required className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-foreground">Transaction</label>
-                  <select 
-                    name="transaction_type" 
-                    value={formData.transaction_type}
-                    onChange={handleChange}
-                    required 
-                    className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
+                  <select name="transaction_type" value={formData.transaction_type} onChange={handleChange} required className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
                     <option value="">Choisir</option>
                     {transactionTypes.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-foreground">Type de bien</label>
-                  <select 
-                    name="property_type" 
-                    value={formData.property_type}
-                    onChange={handleChange}
-                    required 
-                    className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
+                  <select name="property_type" value={formData.property_type} onChange={handleChange} required className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
                     <option value="">Choisir</option>
                     {propertyTypes.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
@@ -269,72 +283,65 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
 
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground">Description</label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  rows={4}
-                  required
-                  className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
+                <textarea name="description" value={formData.description} onChange={handleChange} rows={4} required className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
 
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground">Prix (DH)</label>
-                <input
-                  type="number"
-                  name="price"
-                  value={formData.price}
-                  onChange={handleChange}
-                  required
-                  className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
+                <input type="number" name="price" value={formData.price} onChange={handleChange} required className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
             </div>
           </div>
 
-          {/* --- Détails techniques --- */}
           <div className="rounded-xl border border-border bg-card p-6">
             <h2 className="mb-4 font-serif text-xl font-bold text-foreground">Détails</h2>
             <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Surface (m²)</label>
-                <input name="surface" type="number" value={formData.surface} onChange={handleChange} required className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Pièces</label>
-                <input name="rooms" type="number" value={formData.rooms} onChange={handleChange} className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Chambres</label>
-                <input name="bedrooms" type="number" value={formData.bedrooms} onChange={handleChange} className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-              </div>
-               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Salles de bain</label>
-                <input name="bathrooms" type="number" value={formData.bathrooms} onChange={handleChange} className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-              </div>
+              <div><label className="mb-1.5 block text-sm font-medium text-foreground">Surface (m²)</label><input name="surface" type="number" value={formData.surface} onChange={handleChange} required className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" /></div>
+              <div><label className="mb-1.5 block text-sm font-medium text-foreground">Pièces</label><input name="rooms" type="number" value={formData.rooms} onChange={handleChange} className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" /></div>
+              <div><label className="mb-1.5 block text-sm font-medium text-foreground">Chambres</label><input name="bedrooms" type="number" value={formData.bedrooms} onChange={handleChange} className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" /></div>
+              <div><label className="mb-1.5 block text-sm font-medium text-foreground">Salles de bain</label><input name="bathrooms" type="number" value={formData.bathrooms} onChange={handleChange} className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" /></div>
             </div>
           </div>
 
-          {/* --- Localisation --- */}
           <div className="rounded-xl border border-border bg-card p-6">
             <h2 className="mb-4 font-serif text-xl font-bold text-foreground">Localisation</h2>
             <div className="flex flex-col gap-4">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Ville</label>
-                <select name="city" value={formData.city} onChange={handleChange} required className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                  <option value="">Choisir</option>
-                  {cities.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
+              <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">Ville</label>
+                    <select name="city" value={formData.city} onChange={handleChange} required className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                      <option value="">Choisir</option>
+                      {cities.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">Adresse</label>
+                    <input name="address" type="text" value={formData.address} onChange={handleChange} required className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                  </div>
               </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Adresse</label>
-                <input name="address" type="text" value={formData.address} onChange={handleChange} required className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+
+              {/* CARTE INTERACTIVE SANS ERREUR SSR */}
+              <div className="mt-2">
+                  <label className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
+                      <MapPin className="h-4 w-4 text-primary" /> 
+                      Emplacement sur la carte (Optionnel)
+                  </label>
+                  <p className="text-xs text-muted-foreground mb-3">Cliquez sur la carte pour modifier l'emplacement exact du bien.</p>
+                  
+                  <div className="h-[300px] w-full rounded-xl overflow-hidden border border-border relative z-0">
+                      <MapPicker mapCenter={mapCenter} markerPosition={markerPosition} setMarkerPosition={setMarkerPosition} />
+                  </div>
+                  
+                  {markerPosition && (
+                      <div className="mt-2 flex justify-between items-center bg-green-50 text-green-700 px-3 py-2 rounded-lg border border-green-200 text-xs">
+                          <span className="flex items-center gap-2"><Check className="h-3 w-3" /> Emplacement enregistré ({markerPosition.lat.toFixed(4)}, {markerPosition.lng.toFixed(4)})</span>
+                          <button type="button" onClick={() => setMarkerPosition(null)} className="font-semibold underline hover:text-green-800">Effacer</button>
+                      </div>
+                  )}
               </div>
             </div>
           </div>
 
-          {/* --- Équipements --- */}
           <div className="rounded-xl border border-border bg-card p-6">
             <h2 className="mb-4 font-serif text-xl font-bold text-foreground">Équipements</h2>
             <div className="flex flex-wrap gap-2">
@@ -356,19 +363,16 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
             </div>
           </div>
 
-          {/* --- Photos --- */}
           <div className="rounded-xl border border-border bg-card p-6">
             <div className="flex items-center justify-between mb-4">
                <h2 className="font-serif text-xl font-bold text-foreground">Photos</h2>
             </div>
 
-            {/* Avertissement */}
             <div className="mb-4 rounded-lg bg-blue-50 p-4 text-sm text-blue-700 border border-blue-100 flex items-start gap-2">
                 <AlertCircle className="h-5 w-5 shrink-0" />
                 <p>Si vous ajoutez de nouvelles photos ci-dessous, elles <strong>remplaceront</strong> toutes les photos actuelles.</p>
             </div>
 
-            {/* Photos actuelles */}
             {existingImages.length > 0 && newFiles.length === 0 && (
                 <div className="mb-6">
                     <p className="text-sm font-medium mb-2">Photos actuelles :</p>
@@ -382,7 +386,6 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
                 </div>
             )}
             
-            {/* Upload nouvelles photos */}
             <input 
                 type="file" 
                 ref={fileInputRef}
@@ -408,7 +411,6 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
                 {newFiles.length >= MAX_IMAGES ? "Limite atteinte" : "Sélectionner nouvelles photos"}
               </Button>
 
-              {/* Liste des nouveaux fichiers */}
               {newFiles.length > 0 && (
                 <div className="mt-4 flex flex-wrap justify-center gap-2 w-full">
                     {newFiles.map((file, index) => (
@@ -424,7 +426,6 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
             </div>
           </div>
 
-          {/* Bouton Sauvegarder */}
           <div className="flex gap-4">
             <Button type="button" variant="outline" className="flex-1" onClick={() => router.back()}>Annuler</Button>
             <Button type="submit" size="lg" className="flex-1 text-base" disabled={loadingSubmit}>

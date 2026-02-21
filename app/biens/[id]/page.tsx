@@ -1,9 +1,10 @@
 "use client"
 
-import { use, useState, useEffect } from "react"
+import { use, useState, useEffect, useMemo } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import dynamic from 'next/dynamic'
 import {
   ArrowLeft, Heart, Share2, MapPin, Maximize2,
   BedDouble, Bath, Home, Phone, Mail, MessageCircle,
@@ -18,6 +19,13 @@ import { PropertyCard } from "@/components/property-card"
 import { formatPrice } from "@/lib/data"
 import api from "@/services/api"
 
+// 🌟 IMPORT DYNAMIQUE DE LA CARTE (SANS SSR) 🌟
+// Cela empêche l'erreur "window is not defined"
+const MapViewer = dynamic(() => import('@/components/MapViewer'), { 
+    ssr: false, 
+    loading: () => <div className="h-full w-full flex items-center justify-center bg-secondary/50"><Loader2 className="animate-spin text-primary" /></div>
+})
+
 const API_URL = "http://127.0.0.1:8000";
 
 export default function PropertyDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -29,6 +37,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
   const [similarProperties, setSimilarProperties] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [currentImage, setCurrentImage] = useState(0)
+  const [mounted, setMounted] = useState(false) 
   
   // États pour les favoris
   const [isFav, setIsFav] = useState(false)
@@ -55,6 +64,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
   }
 
   useEffect(() => {
+    setMounted(true); 
     const fetchData = async () => {
       try {
         const res = await api.get(`/properties/${id}`)
@@ -141,7 +151,6 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
     if (!showChat) {
         setLoadingChat(true);
         try {
-            // Sur la page de détail, on veut voir NOTRE conversation avec l'agence
             const res = await api.get('/my-sent-messages');
             const propMessages = res.data.filter((m: any) => m.property_id.toString() === id);
             setChatMessages(propMessages.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()));
@@ -177,7 +186,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
               created_at: new Date().toISOString(),
               name: payload.name,
               email: payload.email,
-              is_from_client: true, // Tag local pour forcer l'affichage à droite
+              is_from_client: true,
           }]);
           
           setNewMessage(""); 
@@ -226,6 +235,13 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
           setSendingReport(false);
       }
   }
+
+  const mapCenter = useMemo(() => {
+    if (property && property.latitude && property.longitude) {
+      return [parseFloat(property.latitude), parseFloat(property.longitude)] as [number, number];
+    }
+    return null;
+  }, [property]);
 
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>
   if (!property) return (
@@ -370,6 +386,18 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
                 </div>
             )}
 
+            {/* 🌟 AFFICHAGE DE LA CARTE GPS ICI 🌟 */}
+            {mounted && mapCenter && (
+              <div className="mb-8">
+                <h2 className="mb-3 font-serif text-xl font-bold flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-primary" /> Emplacement
+                </h2>
+                <div className="h-[350px] w-full rounded-2xl overflow-hidden border border-border relative z-0 shadow-sm">
+                  <MapViewer center={mapCenter} address={property.address || property.city} />
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-wrap items-center gap-4 border-t border-border pt-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-1.5"><Eye className="h-4 w-4" /> {property.views || 0} vues</div>
               <div className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /> Publiée le {formattedDate}</div>
@@ -427,9 +455,6 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
                       <Loader2 className="animate-spin m-auto text-primary" />
                     ) : (
                       chatMessages.map(msg => {
-                          // LOGIQUE DE COULEUR :
-                          // Si c'est MOI (le client connecté qui regarde l'annonce), c'est vrai
-                          // On se base sur le nom en DB : si ça vient de l'agence, ce n'est pas moi.
                           const isMe = msg.name !== "Agence" && msg.is_from_client !== false; 
                           
                           return (
