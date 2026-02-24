@@ -67,17 +67,24 @@ export default function DashboardPage() {
           </div>
           <div>
              <Badge variant="outline" className="text-sm px-3 py-1 uppercase bg-secondary/50">
-                Espace {role}
+               Espace {role}
              </Badge>
           </div>
         </div>
 
-        {/* Affichage Conditionnel des Composants */}
-        {role === "client" && <ClientDashboard />}
-        
-        {(role === "agence" || role === "proprietaire") && <AgencyDashboard />}
-        
-        {role === "admin" && <AdminDashboard />}
+        {/* 🌟 Affichage Conditionnel des Composants 🌟 */}
+        {role === "client" ? (
+            <ClientDashboard />
+        ) : (role === "agence" || role === "proprietaire") ? (
+            <AgencyDashboard />
+        ) : role === "admin" ? (
+            <AdminDashboard />
+        ) : (
+            // Sécurité : Si le rôle n'est ni client, ni agence, ni admin (ex: localStorage modifié)
+            <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center text-red-600">
+                Type de compte non reconnu ou accès non autorisé.
+            </div>
+        )}
 
       </div>
       <Footer />

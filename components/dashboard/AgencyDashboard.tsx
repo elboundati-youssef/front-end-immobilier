@@ -7,14 +7,14 @@ import {
   Building2, Eye, Plus, Edit, Trash2, BarChart3, 
   MessageSquare, Loader2, MapPin, Heart, ChevronLeft, 
   ChevronRight, User, Send, TrendingUp, Home, Activity,
-  CheckCircle2, Clock, PieChart
+  CheckCircle2, Clock, PieChart, Bell, Phone // 🌟 Ajout de Phone ici
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { formatPrice } from "@/lib/data"
 import api from "@/services/api"
 
-type AgenceTab = "annonces" | "messages" | "statistiques" | "favoris"
+type AgenceTab = "annonces" | "messages" | "statistiques" | "favoris" | "notifications"
 
 const API_URL = "http://127.0.0.1:8000";
 const ITEMS_PER_PAGE = 6;
@@ -22,17 +22,11 @@ const ITEMS_PER_PAGE = 6;
 function Pagination({ currentPage, totalPages, onPageChange }: { currentPage: number; totalPages: number; onPageChange: (page: number) => void }) {
   if (totalPages <= 1) return null;
   return (
-    <div className="mt-8 flex items-center justify-center gap-2">
+    <div className="mt-6 flex items-center justify-center gap-2">
       <Button variant="outline" size="icon" onClick={() => onPageChange(Math.max(currentPage - 1, 1))} disabled={currentPage === 1}>
         <ChevronLeft className="h-4 w-4" />
       </Button>
-      <div className="flex items-center gap-1">
-        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-          <Button key={page} variant={currentPage === page ? "default" : "outline"} className="h-9 w-9 p-0" onClick={() => onPageChange(page)}>
-            {page}
-          </Button>
-        ))}
-      </div>
+      <span className="text-sm px-2 text-muted-foreground">Page {currentPage} sur {totalPages}</span>
       <Button variant="outline" size="icon" onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))} disabled={currentPage === totalPages}>
         <ChevronRight className="h-4 w-4" />
       </Button>
@@ -50,6 +44,10 @@ export function AgencyDashboard() {
   
   const [allMyMessages, setAllMyMessages] = useState<any[]>([])
   
+  const [agencyNotifications, setAgencyNotifications] = useState<any[]>([])
+  const [loadingNotifs, setLoadingNotifs] = useState(false)
+  const [currentNotifPage, setCurrentNotifPage] = useState(1)
+
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null)
   const [replyText, setReplyText] = useState("")
   const [sendingReply, setSendingReply] = useState(false)
@@ -68,6 +66,7 @@ export function AgencyDashboard() {
     fetchMyProperties()
     fetchFavorites()
     fetchUnifiedMessages()
+    fetchAgencyNotifications()
   }, [])
 
   const fetchMyProperties = async () => {
@@ -88,6 +87,18 @@ export function AgencyDashboard() {
     } catch (err) { console.error("Erreur favoris", err) } finally { setLoadingFavs(false) }
   }
 
+  const fetchAgencyNotifications = async () => {
+      setLoadingNotifs(true)
+      try {
+          const res = await api.get('/my-properties/likes'); 
+          setAgencyNotifications(res.data);
+      } catch (err) {
+          console.error("Erreur récupération notifications", err)
+      } finally {
+          setLoadingNotifs(false)
+      }
+  }
+
   const fetchUnifiedMessages = async () => {
     setLoadingMsg(true);
     try {
@@ -95,8 +106,12 @@ export function AgencyDashboard() {
         api.get('/my-received-messages'),
         api.get('/my-sent-messages')
       ]);
-      const allMessages = [...received.data, ...sent.data];
+      const receivedMsgs = (received.data || []).map((m: any) => ({ ...m, is_mine: false }));
+      const sentMsgs = (sent.data || []).map((m: any) => ({ ...m, is_mine: true }));
+
+      const allMessages = [...receivedMsgs, ...sentMsgs];
       const uniqueMessages = Array.from(new Map(allMessages.map(m => [m.id, m])).values());
+      
       setAllMyMessages(uniqueMessages);
     } catch (err) { console.error("Erreur messages", err) } finally { setLoadingMsg(false) }
   }
@@ -146,7 +161,7 @@ export function AgencyDashboard() {
           dName = `Annonce : ${msg.property?.title || 'Bien #' + msg.property_id}`;
           dEmail = "Discussion avec l'annonceur";
       } else {
-          dName = (msg.name !== 'Propriétaire' && msg.name !== 'Agence') ? msg.name : 'Client';
+          dName = (msg.name !== 'Propriétaire' && msg.name !== 'Agence' && msg.name !== 'Admin') ? msg.name : 'Client';
           dEmail = msg.email;
       }
 
@@ -191,12 +206,10 @@ export function AgencyDashboard() {
     } finally { setSendingReply(false); }
   }
 
-  // --- CALCULS STATISTIQUES ---
   const topProperties = [...myProperties].sort((a, b) => (b.views_count || 0) - (a.views_count || 0)).slice(0, 5)
   const maxViews = topProperties.length > 0 ? (topProperties[0].views_count || 1) : 1
   
   const totalContacts = conversationList.filter((c:any) => currentUser && c.contact_email !== currentUser.email).length;
-  const totalFavorites = favorites.length
   const conversionRate = totalViews > 0 ? ((totalContacts / totalViews) * 100).toFixed(2) : "0.00"
   
   const publishedCount = myProperties.filter(p => p.status === 'publié').length
@@ -209,8 +222,12 @@ export function AgencyDashboard() {
 
   const paginatedProps = myProperties.slice((currentPropPage - 1) * ITEMS_PER_PAGE, currentPropPage * ITEMS_PER_PAGE)
   const totalPropPages = Math.ceil(myProperties.length / ITEMS_PER_PAGE)
+  
   const paginatedFavs = favorites.slice((currentFavPage - 1) * ITEMS_PER_PAGE, currentFavPage * ITEMS_PER_PAGE)
   const totalFavPages = Math.ceil(favorites.length / ITEMS_PER_PAGE)
+
+  const paginatedNotifs = agencyNotifications.slice((currentNotifPage - 1) * ITEMS_PER_PAGE, currentNotifPage * ITEMS_PER_PAGE)
+  const totalNotifPages = Math.ceil(agencyNotifications.length / ITEMS_PER_PAGE)
 
   const getImageUrl = (imagesData: any) => {
     if (!imagesData) return "/placeholder.jpg";
@@ -232,6 +249,7 @@ export function AgencyDashboard() {
             { key: "annonces", label: "Mes annonces", icon: Home },
             { key: "messages", label: "Mes Messages", icon: MessageSquare, count: conversationList.length },
             { key: "favoris", label: "Mes Favoris", icon: Heart },
+            { key: "notifications", label: "Activités", icon: Bell, count: agencyNotifications.length },
             { type: "divider" },
             { type: "title", label: "Performances" },
             { key: "statistiques", label: "Mes Statistiques", icon: Activity },
@@ -268,12 +286,12 @@ export function AgencyDashboard() {
       {/* 🌟 CONTENU PRINCIPAL 🌟 */}
       <main className="flex-1 min-w-0 flex flex-col gap-6">
 
-        {/* STATS RAPIDES (Toujours visibles en haut) */}
+        {/* STATS RAPIDES */}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {[
             { label: "Annonces", value: myProperties.length.toString(), icon: Building2 },
             { label: "Contacts", value: totalContacts.toString(), icon: MessageSquare },
-            { label: "Favoris", value: favorites.length.toString(), icon: Heart },
+            { label: "J'aimes reçus", value: agencyNotifications.length.toString(), icon: Heart }, 
             { label: "Vues", value: totalViews.toString(), icon: Eye },
           ].map((stat) => (
             <div key={stat.label} className="rounded-xl border border-border bg-card p-4 shadow-sm">
@@ -375,6 +393,69 @@ export function AgencyDashboard() {
           </div>
         )}
 
+        {/* 🌟 ONGLET NOTIFICATIONS (Activités) AVEC TÉLÉPHONE 🌟 */}
+        {agenceTab === "notifications" && (
+            <div className="flex flex-col gap-3">
+                <div className="mb-2 flex justify-between items-center">
+                    <h2 className="text-lg font-semibold font-serif">Activité sur vos annonces ({agencyNotifications.length})</h2>
+                </div>
+
+                {loadingNotifs ? (
+                    <div className="flex justify-center py-10"><Loader2 className="animate-spin text-primary" /></div>
+                ) : paginatedNotifs.length === 0 ? (
+                    <div className="text-center py-12 border border-dashed rounded-xl text-muted-foreground bg-card shadow-sm flex flex-col items-center justify-center gap-3">
+                        <Heart className="h-8 w-8 text-muted-foreground opacity-30" />
+                        <p>Personne n'a encore ajouté vos biens en favoris.</p>
+                    </div>
+                ) : (
+                    <div className="flex flex-col gap-3">
+                        {paginatedNotifs.map((notif: any) => (
+                            <div key={notif.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-border bg-card shadow-sm hover:border-primary/30 transition-colors">
+                                <div className="flex items-start gap-4">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-500">
+                                        <Heart className="h-5 w-5 fill-current" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <p className="text-sm text-foreground">
+                                            <span className="font-semibold">{notif.user_name}</span> a ajouté votre annonce à ses favoris.
+                                        </p>
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mt-1">
+                                            <Link href={`/biens/${notif.property_id}`} className="text-sm font-medium text-primary hover:underline flex items-center gap-1">
+                                                <Building2 className="h-3.5 w-3.5" />
+                                                {notif.property_title}
+                                            </Link>
+                                            
+                                            <span className="hidden sm:inline text-muted-foreground">•</span>
+                                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                                <User className="h-3 w-3" /> {notif.user_email}
+                                            </span>
+                                            
+                                            {/* 🌟 AFFICHAGE DU TÉLÉPHONE ICI 🌟 */}
+                                            {notif.user_phone && (
+                                              <>
+                                                <span className="hidden sm:inline text-muted-foreground">•</span>
+                                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                                    <Phone className="h-3 w-3" /> {notif.user_phone}
+                                                </span>
+                                              </>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="text-xs text-muted-foreground whitespace-nowrap self-end sm:self-center bg-secondary px-2 py-1 rounded-md">
+                                    {new Date(notif.created_at).toLocaleDateString('fr-FR', {
+                                        day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                                    })}
+                                </div>
+                            </div>
+                        ))}
+
+                        <Pagination currentPage={currentNotifPage} totalPages={totalNotifPages} onPageChange={setCurrentNotifPage} />
+                    </div>
+                )}
+            </div>
+        )}
+
         {/* 🌟 ONGLET MESSAGES 🌟 */}
         {agenceTab === "messages" && (
           <div className="flex flex-col md:flex-row gap-0 md:gap-4 h-[calc(100vh-200px)] min-h-[500px] border border-border rounded-xl bg-card overflow-hidden shadow-sm relative">
@@ -422,12 +503,13 @@ export function AgencyDashboard() {
                   <div className="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col">
                     {activeChatMessages.map((msg: any, index: number) => {
                       const amIVisitor = currentUser && activeThread.contact_email === currentUser.email;
+                      
                       let isMe = false;
 
                       if (amIVisitor) {
-                          isMe = msg.name !== "Propriétaire" && msg.name !== "Agence";
+                          isMe = msg.name !== "Propriétaire" && msg.name !== "Agence" && msg.name !== "Admin";
                       } else {
-                          isMe = msg.name === "Propriétaire" || msg.name === "Agence";
+                          isMe = msg.name === "Propriétaire" || msg.name === "Agence" || msg.name === "Admin";
                       }
                       
                       return (

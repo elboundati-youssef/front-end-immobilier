@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { User, Mail, Shield, Camera, Save, X, Loader2 } from "lucide-react"
+import { User, Mail, Shield, Camera, Save, X, Loader2, Phone } from "lucide-react" // Ajout de Phone
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,12 +14,13 @@ interface UserProfile {
   id: number
   name: string
   email: string
+  phone?: string // <-- Ajout de phone ici
   role: string
   avatar?: string
   created_at?: string
 }
 
-const API_URL = "http://127.0.0.1:8000"; // Assurez-vous que c'est la bonne URL
+const API_URL = "http://127.0.0.1:8000";
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -35,6 +36,7 @@ export default function ProfilePage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    phone: "", // <-- Ajout de phone ici
   })
 
   // 1. CHARGEMENT DE L'UTILISATEUR
@@ -52,7 +54,11 @@ export default function ProfilePage() {
       try {
         const res = await api.get('/user')
         setUser(res.data)
-        setFormData({ name: res.data.name, email: res.data.email })
+        setFormData({ 
+          name: res.data.name, 
+          email: res.data.email,
+          phone: res.data.phone || "" // Remplissage initial
+        })
         // Mise à jour du localStorage pour rester synchro
         localStorage.setItem("user", JSON.stringify(res.data))
       } catch (err) {
@@ -61,7 +67,11 @@ export default function ProfilePage() {
         if (storedUser) {
             const parsedUser = JSON.parse(storedUser)
             setUser(parsedUser)
-            setFormData({ name: parsedUser.name, email: parsedUser.email })
+            setFormData({ 
+              name: parsedUser.name, 
+              email: parsedUser.email,
+              phone: parsedUser.phone || "" // Remplissage initial fallback
+            })
         } else {
             router.push("/connexion")
         }
@@ -73,7 +83,7 @@ export default function ProfilePage() {
     fetchUser()
   }, [router])
 
-  // 2. SAUVEGARDE DES MODIFICATIONS (NOM/EMAIL)
+  // 2. SAUVEGARDE DES MODIFICATIONS (NOM/EMAIL/PHONE)
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
@@ -114,7 +124,6 @@ export default function ProfilePage() {
     formData.append('avatar', file)
 
     try {
-        // Optionnel : Afficher un état de chargement spécifique
         alert("Envoi de l'image en cours...")
         
         const res = await api.post('/user/avatar', formData, {
@@ -249,6 +258,23 @@ export default function ProfilePage() {
                 </div>
               </div>
 
+              {/* 🌟 NOUVEAU CHAMP : TÉLÉPHONE 🌟 */}
+              <div className="grid gap-2">
+                <Label htmlFor="phone">Numéro de téléphone</Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    disabled={!isEditing} 
+                    className="pl-9"
+                    placeholder="06 00 00 00 00"
+                  />
+                </div>
+              </div>
+
               <div className="grid gap-2">
                 <Label>Mot de passe</Label>
                 <Input
@@ -271,7 +297,10 @@ export default function ProfilePage() {
                   <Button 
                     type="button" 
                     variant="ghost" 
-                    onClick={() => { setIsEditing(false); setFormData({ name: user.name, email: user.email }); }}
+                    onClick={() => { 
+                      setIsEditing(false); 
+                      setFormData({ name: user.name, email: user.email, phone: user.phone || "" }); 
+                    }}
                     className="gap-2"
                   >
                     <X className="h-4 w-4" />

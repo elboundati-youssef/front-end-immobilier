@@ -20,7 +20,6 @@ import { formatPrice } from "@/lib/data"
 import api from "@/services/api"
 
 // 🌟 IMPORT DYNAMIQUE DE LA CARTE (SANS SSR) 🌟
-// Cela empêche l'erreur "window is not defined"
 const MapViewer = dynamic(() => import('@/components/MapViewer'), { 
     ssr: false, 
     loading: () => <div className="h-full w-full flex items-center justify-center bg-secondary/50"><Loader2 className="animate-spin text-primary" /></div>
@@ -28,8 +27,8 @@ const MapViewer = dynamic(() => import('@/components/MapViewer'), {
 
 const API_URL = "http://127.0.0.1:8000";
 
-export default function PropertyDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+export default function PropertyDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params)
   const router = useRouter()
   
   // États des données
@@ -67,7 +66,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
     setMounted(true); 
     const fetchData = async () => {
       try {
-        const res = await api.get(`/properties/${id}`)
+        const res = await api.get(`/properties/${slug}`)
         const loadedProperty = res.data
         setProperty(loadedProperty)
 
@@ -76,7 +75,8 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
 
         const similar = allProps
             .filter((p: any) => 
-                p.id.toString() !== id && 
+                // 🌟 CORRECTION ICI : On utilise loadedProperty.id au lieu de l'ancien id
+                p.id.toString() !== loadedProperty.id.toString() && 
                 (p.city === loadedProperty.city || p.property_type === loadedProperty.property_type)
             )
             .slice(0, 3)
@@ -111,8 +111,9 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
         setLoading(false)
       }
     }
-    if (id) fetchData()
-  }, [id])
+    // 🌟 CORRECTION ICI : On vérifie le slug
+    if (slug) fetchData()
+  }, [slug])
 
   const handleFavoriteClick = async () => {
     const token = localStorage.getItem('token');
@@ -128,9 +129,10 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
     setIsFav(!isFav); 
 
     try {
-        await api.post(`/properties/${id}/favorite`);
-        if (!isFav) setUserFavorites(prev => [...prev, id]);
-        else setUserFavorites(prev => prev.filter(fid => fid !== id));
+        // 🌟 CORRECTION ICI : On utilise property.id
+        await api.post(`/properties/${property.id}/favorite`);
+        if (!isFav) setUserFavorites(prev => [...prev, property.id.toString()]);
+        else setUserFavorites(prev => prev.filter(fid => fid !== property.id.toString()));
     } catch (err) {
         setIsFav(previousState);
     } finally {
@@ -152,7 +154,8 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
         setLoadingChat(true);
         try {
             const res = await api.get('/my-sent-messages');
-            const propMessages = res.data.filter((m: any) => m.property_id.toString() === id);
+            // 🌟 CORRECTION ICI : property.id
+            const propMessages = res.data.filter((m: any) => m.property_id.toString() === property.id.toString());
             setChatMessages(propMessages.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()));
         } catch (err) {
             console.error("Erreur chargement chat", err);
@@ -177,11 +180,12 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
               message: newMessage,
           };
 
-          const response = await api.post(`/properties/${id}/message`, payload);
+          // 🌟 CORRECTION ICI : property.id
+          const response = await api.post(`/properties/${property.id}/message`, payload);
 
           setChatMessages(prev => [...prev, {
               id: response.data?.id || Date.now(),
-              property_id: id,
+              property_id: property.id,
               message: newMessage,
               created_at: new Date().toISOString(),
               name: payload.name,
@@ -222,7 +226,8 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
       e.preventDefault();
       setSendingReport(true);
       try {
-          await api.post(`/properties/${id}/report`, { reason: reportReason });
+          // 🌟 CORRECTION ICI : property.id
+          await api.post(`/properties/${property.id}/report`, { reason: reportReason });
           setReportSent(true);
           setReportReason("");
           setTimeout(() => {

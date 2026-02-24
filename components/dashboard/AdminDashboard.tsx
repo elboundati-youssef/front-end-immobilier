@@ -8,14 +8,14 @@ import {
   CheckCircle2, Trash2, Loader2, ChevronLeft, 
   ChevronRight, Eye, Heart, Mail, User, Phone,
   Home, MessageSquare, BarChart3, TrendingUp, Send, Plus, 
-  Activity, PieChart, Store, MapPin, Edit
+  Activity, PieChart, Store, MapPin, Edit, Bell
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { formatPrice } from "@/lib/data"
 import api from "@/services/api"
 
-type AdminTab = "utilisateurs" | "annonces" | "signalements" | "statistiques" | "contacts" | "mes_annonces" | "mes_messages" | "mes_statistiques" | "favoris"
+type AdminTab = "utilisateurs" | "annonces" | "signalements" | "statistiques" | "contacts" | "mes_annonces" | "mes_messages" | "mes_statistiques" | "favoris" | "notifications"
 
 const API_URL = "http://127.0.0.1:8000";
 const ITEMS_PER_PAGE = 5; 
@@ -33,6 +33,11 @@ export function AdminDashboard() {
   
   const [myProperties, setMyProperties] = useState<any[]>([])
   const [allMyMessages, setAllMyMessages] = useState<any[]>([])
+
+  // 🌟 NOUVEAUX ÉTATS POUR LES NOTIFICATIONS 🌟
+  const [agencyNotifications, setAgencyNotifications] = useState<any[]>([])
+  const [loadingNotifs, setLoadingNotifs] = useState(false)
+  const [currentNotifPage, setCurrentNotifPage] = useState(1)
 
   // --- CHAT ETAT ---
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null)
@@ -67,6 +72,7 @@ export function AdminDashboard() {
     fetchContacts()
     fetchMyProperties()
     fetchUnifiedMessages()
+    fetchAgencyNotifications() // <-- LIGNE AJOUTÉE
   }, [])
 
   const fetchUsers = async () => {
@@ -126,6 +132,18 @@ export function AdminDashboard() {
     } catch (e) {
       console.error("Erreur messages unifiés", e);
     } finally { setLoadingMessages(false); }
+  }
+
+  const fetchAgencyNotifications = async () => {
+      setLoadingNotifs(true)
+      try {
+          const res = await api.get('/my-properties/likes'); 
+          setAgencyNotifications(res.data);
+      } catch (err) {
+          console.error("Erreur récupération notifications", err)
+      } finally {
+          setLoadingNotifs(false)
+      }
   }
 
   // --- ACTIONS ADMIN ---
@@ -294,6 +312,10 @@ export function AdminDashboard() {
   const paginate = (data: any[], page: number) => data.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
   const getPages = (data: any[]) => Math.ceil(data.length / ITEMS_PER_PAGE)
 
+  // 🌟 PAGINATION DES NOTIFICATIONS 🌟
+  const paginatedNotifs = agencyNotifications.slice((currentNotifPage - 1) * ITEMS_PER_PAGE, currentNotifPage * ITEMS_PER_PAGE)
+  const totalNotifPages = Math.ceil(agencyNotifications.length / ITEMS_PER_PAGE)
+
   const getImageUrl = (imagesData: any) => {
     if (!imagesData) return "/placeholder.jpg";
     let images = typeof imagesData === 'string' ? JSON.parse(imagesData) : imagesData;
@@ -340,6 +362,7 @@ export function AdminDashboard() {
             { key: "mes_annonces", label: "Mes Annonces", icon: Home },
             { key: "mes_messages", label: "Mes Messages", icon: MessageSquare, count: conversationList.length },
             { key: "mes_statistiques", label: "Mes Statistiques", icon: Activity }, 
+            { key: "notifications", label: "Activités", icon: Bell, count: agencyNotifications.length },
             { key: "favoris", label: "Mes Favoris", icon: Heart },
           ].map((tab, idx) => {
             if (tab.type === "divider") {
@@ -814,6 +837,92 @@ export function AdminDashboard() {
           </div>
         )}
 
+        {/* 🌟 NOUVEL ONGLET : NOTIFICATIONS (Activités) 🌟 */}
+        {adminTab === "notifications" && (
+            <div className="flex flex-col gap-3">
+                <div className="mb-2 flex justify-between items-center">
+                    <h2 className="text-lg font-semibold font-serif">Activité sur vos annonces ({agencyNotifications.length})</h2>
+                </div>
+
+                {loadingNotifs ? (
+                    <div className="flex justify-center py-10"><Loader2 className="animate-spin text-primary" /></div>
+                ) : paginatedNotifs.length === 0 ? (
+                    <div className="text-center py-12 border border-dashed rounded-xl text-muted-foreground bg-card shadow-sm flex flex-col items-center justify-center gap-3">
+                        <Heart className="h-8 w-8 text-muted-foreground opacity-30" />
+                        <p>Personne n'a encore ajouté vos biens en favoris.</p>
+                    </div>
+                ) : (
+                    <div className="flex flex-col gap-3">
+                        {paginatedNotifs.map((notif: any) => (
+                            <div key={notif.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-border bg-card shadow-sm hover:border-primary/30 transition-colors">
+                                <div className="flex items-start gap-4">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-500">
+                                        <Heart className="h-5 w-5 fill-current" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <p className="text-sm text-foreground">
+                                            <span className="font-semibold">{notif.user_name}</span> a ajouté votre annonce à ses favoris.
+                                        </p>
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mt-1">
+                                            <Link href={`/biens/${notif.property_id}`} className="text-sm font-medium text-primary hover:underline flex items-center gap-1">
+                                                <Building2 className="h-3.5 w-3.5" />
+                                                {notif.property_title}
+                                            </Link>
+                                            
+                                            <span className="hidden sm:inline text-muted-foreground">•</span>
+                                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                                <User className="h-3 w-3" /> {notif.user_email}
+                                            </span>
+                                            
+                                            {/* Téléphone affiché s'il existe */}
+                                            {notif.user_phone && (
+                                              <>
+                                                <span className="hidden sm:inline text-muted-foreground">•</span>
+                                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                                    <Phone className="h-3 w-3" /> {notif.user_phone}
+                                                </span>
+                                              </>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="text-xs text-muted-foreground whitespace-nowrap self-end sm:self-center bg-secondary px-2 py-1 rounded-md">
+                                    {new Date(notif.created_at).toLocaleDateString('fr-FR', {
+                                        day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                                    })}
+                                </div>
+                            </div>
+                        ))}
+
+                        {/* Pagination stricte (1 et 2 maximum) */}
+                        {totalNotifPages > 1 && (
+                            <div className="mt-6 flex items-center justify-center gap-2">
+                              <Button variant="outline" size="icon" onClick={() => setCurrentNotifPage(p => Math.max(p - 1, 1))} disabled={currentNotifPage === 1}>
+                                <ChevronLeft className="h-4 w-4" />
+                              </Button>
+
+                              {Array.from({ length: totalNotifPages }, (_, i) => i + 1)
+                                .filter(p => {
+                                  if (currentNotifPage === totalNotifPages) return p === totalNotifPages || p === totalNotifPages - 1;
+                                  return p === currentNotifPage || p === currentNotifPage + 1;
+                                })
+                                .map((p) => (
+                                  <Button key={p} variant={currentNotifPage === p ? "default" : "outline"} className="h-9 w-9 p-0" onClick={() => setCurrentNotifPage(p)}>
+                                    {p}
+                                  </Button>
+                                ))
+                              }
+
+                              <Button variant="outline" size="icon" onClick={() => setCurrentNotifPage(p => Math.min(p + 1, totalNotifPages))} disabled={currentNotifPage === totalNotifPages}>
+                                <ChevronRight className="h-4 w-4" />
+                              </Button>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+        )}
+
         {/* 🌟 ONGLET : FAVORIS (FIX CORRIGÉ) 🌟 */}
         {adminTab === "favoris" && (
           <div className="flex flex-col gap-3">
@@ -923,7 +1032,7 @@ export function AdminDashboard() {
           </div>
         )}
 
-        {/* 🌟 ONGLET : SIGNALEMENTS (AJUSTÉ POUR MOBILE) 🌟 */}
+{/* 🌟 ONGLET : SIGNALEMENTS (AJUSTÉ POUR MOBILE) 🌟 */}
         {adminTab === "signalements" && (
           <div className="flex flex-col gap-3">
               {loadingReports ? <div className="flex justify-center py-10"><Loader2 className="animate-spin text-primary" /></div> : (
@@ -963,13 +1072,31 @@ export function AdminDashboard() {
                                   </div>
                               </div>
 
-                              <div className="flex sm:flex-col gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                              {/* 🌟 ZONE DES BOUTONS D'ACTION MODIFIÉE 🌟 */}
+                              <div className="flex flex-col gap-2 w-full sm:w-auto mt-2 sm:mt-0 shrink-0">
+                                  
+                                  {/* BOUTON 1 : SUPPRIMER L'ANNONCE ENTIÈREMENT */}
+                                  {report.property_id && (
+                                      <Button 
+                                          variant="destructive" 
+                                          className="w-full sm:w-auto h-11 sm:h-9"
+                                          onClick={() => {
+                                              handleDelete(report.property_id);
+                                              // On retire aussi le signalement de l'écran pour que ce soit propre
+                                              setReports(prev => prev.filter(r => r.id !== report.id));
+                                          }}
+                                      >
+                                          <Trash2 className="h-4 w-4 mr-2" /> Supprimer l'annonce
+                                      </Button>
+                                  )}
+
+                                  {/* BOUTON 2 : IGNORER LE SIGNALEMENT (L'annonce reste en ligne) */}
                                   <Button 
                                       variant="outline" 
-                                      className="w-full sm:w-auto h-11 sm:h-9 text-destructive border-destructive/30 hover:bg-destructive/10 bg-white"
+                                      className="w-full sm:w-auto h-11 sm:h-9 text-muted-foreground border-border hover:bg-secondary bg-white"
                                       onClick={() => handleDeleteReport(report.id)}
                                   >
-                                      <Trash2 className="h-4 w-4 mr-2" /> Ignorer
+                                      <CheckCircle2 className="h-4 w-4 mr-2" /> Ignorer le signalement
                                   </Button>
                               </div>
                           </div>

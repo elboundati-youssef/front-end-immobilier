@@ -469,15 +469,20 @@ export default function BiensPage() {
                   </button>
 
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
-                    .reduce<(number|'…')[]>((acc, p, idx, arr) => {
-                      if (idx > 0 && (p as number) - (arr[idx-1] as number) > 1) acc.push('…')
-                      acc.push(p); return acc
-                    }, [])
-                    .map((p, i) => p === '…'
-                      ? <span key={`e${i}`} style={{ padding:"0 4px",color:"hsl(var(--muted-foreground))" }}>…</span>
-                      : <button key={p} className={`page-btn${currentPage===p?" active":""}`} onClick={() => { setCurrentPage(p as number); window.scrollTo({top:0,behavior:'smooth'}) }}>{p}</button>
-                    )
+                    .filter(p => {
+                      // Logique stricte : n'afficher que 2 pages adjacentes
+                      if (currentPage === totalPages) return p === totalPages || p === totalPages - 1;
+                      return p === currentPage || p === currentPage + 1;
+                    })
+                    .map((p) => (
+                      <button 
+                        key={p} 
+                        className={`page-btn${currentPage===p?" active":""}`} 
+                        onClick={() => { setCurrentPage(p as number); window.scrollTo({top:0,behavior:'smooth'}) }}
+                      >
+                        {p}
+                      </button>
+                    ))
                   }
 
                   <button

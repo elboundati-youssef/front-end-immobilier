@@ -47,6 +47,9 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   
+  // 🌟 NOUVEL ÉTAT POUR LA PROTECTION DES ROUTES 🌟
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+
   const [loadingData, setLoadingData] = useState(true)
   const [loadingSubmit, setLoadingSubmit] = useState(false)
   const [error, setError] = useState("")
@@ -73,7 +76,33 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
     equipments: [] as string[],
   })
 
+  // 🌟 PROTECTION DE LA ROUTE & GESTION DES RÔLES 🌟
   useEffect(() => {
+    const token = localStorage.getItem("token")
+    const userStr = localStorage.getItem("user")
+    
+    if (!token || !userStr) {
+      router.push("/connexion")
+      return;
+    }
+
+    try {
+      const user = JSON.parse(userStr);
+      // On bloque les clients (seuls les admins, agences ou propriétaires peuvent modifier)
+      if (user.role === 'client') {
+        router.push('/');
+        return;
+      }
+      setIsCheckingAuth(false);
+    } catch (e) {
+      router.push("/connexion")
+    }
+  }, [router])
+
+  useEffect(() => {
+    // Si on est encore en train de vérifier l'auth, on ne fetch pas les données
+    if (isCheckingAuth) return;
+
     const fetchProperty = async () => {
       try {
         const res = await api.get(`/properties/${id}`)
@@ -108,7 +137,7 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
 
         setExistingImages(loadedImages)
 
-        // CHARGEMENT DU GPS EXISTANT (On a besoin de L dynamiquement ici aussi)
+        // CHARGEMENT DU GPS EXISTANT
         if (data.latitude && data.longitude) {
             import('leaflet').then((L) => {
                 const lat = parseFloat(data.latitude);
@@ -129,7 +158,7 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
     }
 
     if (id) fetchProperty()
-  }, [id])
+  }, [id, isCheckingAuth])
 
   const getImageUrl = (path: string) => {
     if (path.startsWith("http") || path.startsWith("/images")) return path;
@@ -229,8 +258,16 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
     }
   }
 
-  if (loadingData) {
-      return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary"/></div>
+  // 🌟 AFFICHAGE DU CHARGEMENT PENDANT LA VÉRIFICATION D'AUTHENTIFICATION 🌟
+  if (isCheckingAuth || loadingData) {
+      return (
+        <div className="min-h-screen bg-background flex flex-col">
+          <Navbar />
+          <div className="flex-1 flex items-center justify-center">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          </div>
+        </div>
+      );
   }
 
   return (

@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react" // <-- useEffect ajouté ici
 import Link from "next/link"
-import { useRouter } from "next/navigation" // Pour la redirection
-import { Home, Eye, EyeOff, Mail, Lock, Loader2 } from "lucide-react"
+import { useRouter } from "next/navigation" 
+import { Home, Eye, EyeOff, Mail, Lock, Loader2, Phone, User } from "lucide-react" 
 import { Button } from "@/components/ui/button"
 
 export default function ConnexionPage() {
@@ -12,19 +12,36 @@ export default function ConnexionPage() {
   const [isLogin, setIsLogin] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  
+  // Nouvel état pour empêcher le rendu du formulaire si l'utilisateur est déjà connecté
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
 
   // État pour stocker les données du formulaire
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    phone: "", 
     password: "",
-    role: "client", // Valeur par défaut
+    role: "client", 
   })
+
+  // 🌟 PROTECTION DE LA ROUTE : Vérification au chargement de la page
+  useEffect(() => {
+    const user = localStorage.getItem('user');
+    
+    if (user) {
+      // Si un utilisateur est trouvé dans le localStorage, on le renvoie à l'accueil
+      router.push('/');
+    } else {
+      // Sinon, on le laisse accéder à la page de connexion
+      setIsCheckingAuth(false);
+    }
+  }, [router])
 
   // Gestion des changements dans les inputs
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
-    setError("") // On efface l'erreur quand l'utilisateur tape
+    setError("") 
   }
 
   // Soumission du formulaire
@@ -38,28 +55,31 @@ export default function ConnexionPage() {
     const url = `http://127.0.0.1:8000/api${endpoint}`
 
     try {
+      // Si on se connecte, pas besoin d'envoyer le téléphone et le nom
+      const dataToSend = isLogin 
+        ? { email: formData.email, password: formData.password }
+        : formData;
+
       const response = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(dataToSend),
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        // Gestion des erreurs renvoyées par Laravel
         throw new Error(data.message || "Une erreur est survenue.")
       }
 
-      // SUCCÈS : On stocke le token
+      // SUCCÈS : On stocke le token et les infos user
       localStorage.setItem("token", data.token)
       localStorage.setItem("user", JSON.stringify(data.user))
 
-      // Redirection vers la page d'accueil ou dashboard
-      // Tu peux changer "/" par "/dashboard"
+      // Redirection vers l'accueil après connexion
       router.push("/") 
       
     } catch (err: any) {
@@ -67,6 +87,16 @@ export default function ConnexionPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // 🌟 On n'affiche rien (ou un petit loader) tant qu'on n'a pas vérifié l'authentification
+  // Cela évite que l'utilisateur voie la page de connexion 1 seconde avant d'être redirigé
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (
@@ -98,21 +128,46 @@ export default function ConnexionPage() {
           )}
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            
+            {/* Champ NOM (Inscription uniquement) */}
             {!isLogin && (
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground">Nom complet</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Votre nom"
-                  required
-                  className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                />
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="Votre nom"
+                    required={!isLogin}
+                    className="w-full rounded-lg border border-border bg-background py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
               </div>
             )}
 
+            {/* Champ TÉLÉPHONE (Inscription uniquement) */}
+            {!isLogin && (
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">Numéro de téléphone</label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    placeholder="Ex: 06 00 00 00 00"
+                    required={!isLogin}
+                    className="w-full rounded-lg border border-border bg-background py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Champ EMAIL (Connexion & Inscription) */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">Email</label>
               <div className="relative">
@@ -129,6 +184,7 @@ export default function ConnexionPage() {
               </div>
             </div>
 
+            {/* Champ MOT DE PASSE (Connexion & Inscription) */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">Mot de passe</label>
               <div className="relative">
@@ -153,6 +209,7 @@ export default function ConnexionPage() {
               </div>
             </div>
 
+            {/* Champ RÔLE (Inscription uniquement) */}
             {!isLogin && (
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground">Type de compte</label>
@@ -169,6 +226,7 @@ export default function ConnexionPage() {
               </div>
             )}
 
+            {/* Liens supplémentaires (Connexion uniquement) */}
             {isLogin && (
               <div className="flex items-center justify-between">
                 <label className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -198,7 +256,7 @@ export default function ConnexionPage() {
               onClick={() => {
                 setIsLogin(!isLogin)
                 setError("")
-                setFormData({ ...formData, name: "", password: "" }) // Reset partiel
+                setFormData({ ...formData, name: "", phone: "", password: "" }) // Reset des champs
               }}
               className="font-medium text-primary hover:underline"
             >

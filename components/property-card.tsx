@@ -54,6 +54,7 @@ export function PropertyCard({ property, initialIsFavorite = false }: PropertyCa
     setLoadingFav(true);
 
     try {
+        // 🌟 L'appel API utilise toujours l'ID !
         await api.post(`/properties/${property.id}/favorite`);
     } catch (error) {
         console.error("Erreur favori", error);
@@ -77,8 +78,8 @@ export function PropertyCard({ property, initialIsFavorite = false }: PropertyCa
         />
         <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-transparent to-transparent pointer-events-none" />
 
-        {/* 🌟 LE LIEN INVISIBLE QUI REND L'IMAGE CLIQUABLE 🌟 */}
-        <Link href={`/biens/${property.id}`} className="absolute inset-0 z-10" aria-label={`Voir les détails de ${property.title}`} />
+        {/* 🌟 LE LIEN UTILISE LE SLUG MAINTENANT 🌟 */}
+        <Link href={`/biens/${property.slug}`} className="absolute inset-0 z-10" aria-label={`Voir les détails de ${property.title}`} />
 
         <div className="absolute left-3 top-3 flex gap-2 z-20">
           <Badge className="bg-primary text-primary-foreground capitalize shadow-sm">
@@ -112,8 +113,8 @@ export function PropertyCard({ property, initialIsFavorite = false }: PropertyCa
         </div>
       </div>
 
-      {/* Le bas de la carte (Déjà cliquable grâce au composant Link) */}
-      <Link href={`/biens/${property.id}`} className="block p-4">
+      {/* 🌟 LE LIEN UTILISE LE SLUG ICI AUSSI 🌟 */}
+      <Link href={`/biens/${property.slug}`} className="block p-4">
         <h3 className="mb-1 font-serif text-lg font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">{property.title}</h3>
 
         <div className="mb-3 flex items-center gap-1.5 text-sm text-muted-foreground">

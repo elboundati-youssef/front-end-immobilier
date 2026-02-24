@@ -48,6 +48,9 @@ export default function PublierPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   
+  // 🌟 NOUVEL ÉTAT POUR LA PROTECTION DES ROUTES 🌟
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  
   // Stockage des fichiers images
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
 
@@ -70,9 +73,28 @@ export default function PublierPage() {
     equipments: [] as string[],
   })
 
+  // 🌟 PROTECTION DE LA ROUTE & GESTION DES RÔLES 🌟
   useEffect(() => {
     const token = localStorage.getItem("token")
-    if (!token) {
+    const userStr = localStorage.getItem("user")
+    
+    if (!token || !userStr) {
+      router.push("/connexion")
+      return;
+    }
+
+    try {
+      const user = JSON.parse(userStr);
+      // On bloque les clients
+      if (user.role === 'client') {
+        router.push('/');
+        return;
+      }
+      
+      // Si l'utilisateur est Agence, Propriétaire ou Admin, on le laisse passer
+      setIsCheckingAuth(false);
+    } catch (e) {
+      // En cas de problème de lecture du localstorage
       router.push("/connexion")
     }
   }, [router])
@@ -173,6 +195,18 @@ export default function PublierPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // 🌟 AFFICHAGE DU CHARGEMENT PENDANT LA VÉRIFICATION D'AUTHENTIFICATION 🌟
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
   }
 
   if (submitted) {
