@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react"
 import { useSearchParams } from "next/navigation"
+import { useTranslations } from "next-intl" // 🌟 IMPORT NEXT-INTL
 import {
   SlidersHorizontal, X, ArrowUpDown, Loader2,
   ChevronLeft, ChevronRight, Search, Sparkles, Building2
@@ -34,6 +35,7 @@ function useInView(threshold = 0.12) {
 }
 
 export default function BiensPage() {
+  const t = useTranslations("PropertiesPage") // 🌟 INITIALISATION TRADUCTION
   const searchParams = useSearchParams()
 
   const [allProperties, setAllProperties]   = useState<any[]>([])
@@ -57,13 +59,14 @@ export default function BiensPage() {
 
   const { ref: resultsRef, inView: resultsInView } = useInView()
 
+  // Traductions des suggestions
   const suggestions = [
-    "Appartement à Tanger moins de 5000",
-    "Villa avec piscine à Marrakech",
-    "Appartement Rabat pour étudiant",
+    t("suggestions.s1"),
+    t("suggestions.s2"),
+    t("suggestions.s3"),
   ]
 
-  useEffect(() => { const t = setTimeout(() => setHeroVisible(true), 80); return () => clearTimeout(t) }, [])
+  useEffect(() => { const timer = setTimeout(() => setHeroVisible(true), 80); return () => clearTimeout(timer) }, [])
 
   useEffect(() => {
     setCity(searchParams.get("city") || "")
@@ -166,132 +169,35 @@ export default function BiensPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap');
         :root { --ease-expo: cubic-bezier(0.16,1,0.3,1); }
-
-        /* Reveal */
         .rv { opacity:0; transform:translateY(28px); transition:opacity .65s var(--ease-expo),transform .65s var(--ease-expo); }
         .rv.on { opacity:1; transform:none; }
-        .d1{transition-delay:60ms;} .d2{transition-delay:130ms;}
-        .d3{transition-delay:200ms;} .d4{transition-delay:270ms;}
-        .d5{transition-delay:340ms;} .d6{transition-delay:410ms;}
-
-        /* Hero text entrance */
-        .hw { display:inline-block; opacity:0; transform:translateY(36px);
-              transition:opacity .7s var(--ease-expo),transform .7s var(--ease-expo); }
+        .hw { display:inline-block; opacity:0; transform:translateY(36px); transition:opacity .7s var(--ease-expo),transform .7s var(--ease-expo); }
         .hv .hw { opacity:1; transform:none; }
-
-        /* Search bar */
-        .magic-bar {
-          display:flex; align-items:center; overflow:hidden;
-          border-radius:99px;
-          border:1.5px solid hsl(var(--border));
-          background:hsl(var(--card));
-          box-shadow:0 4px 24px rgba(0,0,0,.07);
-          transition:box-shadow .3s ease, border-color .3s ease;
-        }
-        .magic-bar.focused {
-          box-shadow:0 6px 36px rgba(0,0,0,.10);
-          border-color:hsl(var(--primary)/.5);
-        }
-        .magic-input {
-          flex:1; padding:16px 16px 16px 8px;
-          background:transparent; border:none; outline:none;
-          font-size:.95rem; color:hsl(var(--foreground));
-          font-family:'DM Sans',sans-serif;
-        }
+        .magic-bar { display:flex; align-items:center; overflow:hidden; border-radius:99px; border:1.5px solid hsl(var(--border)); background:hsl(var(--card)); box-shadow:0 4px 24px rgba(0,0,0,.07); transition:box-shadow .3s ease, border-color .3s ease; }
+        .magic-bar.focused { box-shadow:0 6px 36px rgba(0,0,0,.10); border-color:hsl(var(--primary)/.5); }
+        .magic-input { flex:1; padding:16px 16px 16px 8px; background:transparent; border:none; outline:none; font-size:.95rem; color:hsl(var(--foreground)); font-family:'DM Sans',sans-serif; }
         .magic-input::placeholder { color:hsl(var(--muted-foreground)); }
-        .magic-submit {
-          background:hsl(var(--primary)); color:hsl(var(--primary-foreground));
-          border:none; border-radius:99px;
-          margin:5px; padding:12px 24px;
-          font-weight:600; font-size:.875rem;
-          cursor:pointer; display:flex; align-items:center; gap:8px;
-          transition:transform .25s var(--ease-expo),box-shadow .25s;
-          font-family:'DM Sans',sans-serif;
-          white-space:nowrap;
-        }
+        .magic-submit { background:hsl(var(--primary)); color:hsl(var(--primary-foreground)); border:none; border-radius:99px; margin:5px; padding:12px 24px; font-weight:600; font-size:.875rem; cursor:pointer; display:flex; align-items:center; gap:8px; transition:transform .25s var(--ease-expo),box-shadow .25s; font-family:'DM Sans',sans-serif; white-space:nowrap; }
         .magic-submit:hover { transform:scale(1.03); box-shadow:0 4px 16px rgba(0,0,0,.15); }
         .magic-submit:active { transform:scale(.98); }
-
-        /* Suggestion pills */
-        .sug-pill {
-          padding:6px 14px; border-radius:99px;
-          border:1px solid hsl(var(--border));
-          background:hsl(var(--secondary));
-          color:hsl(var(--secondary-foreground));
-          font-size:.78rem; cursor:pointer;
-          transition:all .2s ease;
-          font-family:'DM Sans',sans-serif;
-        }
+        .sug-pill { padding:6px 14px; border-radius:99px; border:1px solid hsl(var(--border)); background:hsl(var(--secondary)); color:hsl(var(--secondary-foreground)); font-size:.78rem; cursor:pointer; transition:all .2s ease; font-family:'DM Sans',sans-serif; }
         .sug-pill:hover { background:hsl(var(--primary)/.08); border-color:hsl(var(--primary)/.4); color:hsl(var(--primary)); }
-
-        /* Filter panel */
-        .filter-panel {
-          animation:slideDown .35s var(--ease-expo);
-        }
-        @keyframes slideDown {
-          from { opacity:0; transform:translateY(-12px); }
-          to   { opacity:1; transform:none; }
-        }
-        .filter-input {
-          width:100%; border-radius:10px;
-          border:1px solid hsl(var(--border));
-          background:hsl(var(--background));
-          padding:10px 12px; font-size:.85rem;
-          color:hsl(var(--foreground));
-          outline:none; transition:border-color .2s,box-shadow .2s;
-          font-family:'DM Sans',sans-serif;
-        }
+        .filter-panel { animation:slideDown .35s var(--ease-expo); }
+        @keyframes slideDown { from { opacity:0; transform:translateY(-12px); } to { opacity:1; transform:none; } }
+        .filter-input { width:100%; border-radius:10px; border:1px solid hsl(var(--border)); background:hsl(var(--background)); padding:10px 12px; font-size:.85rem; color:hsl(var(--foreground)); outline:none; transition:border-color .2s,box-shadow .2s; font-family:'DM Sans',sans-serif; }
         .filter-input:focus { border-color:hsl(var(--primary)); box-shadow:0 0 0 3px hsl(var(--primary)/.12); }
         .filter-label { display:block; margin-bottom:6px; font-size:.75rem; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:hsl(var(--muted-foreground)); }
-
-        /* Active filter badge */
-        .filter-badge {
-          display:inline-flex; align-items:center; justify-content:center;
-          width:20px; height:20px; border-radius:99px;
-          background:hsl(var(--primary)); color:hsl(var(--primary-foreground));
-          font-size:.7rem; font-weight:700;
-        }
-
-        /* Property card stagger */
+        .filter-badge { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:99px; background:hsl(var(--primary)); color:hsl(var(--primary-foreground)); font-size:.7rem; font-weight:700; }
         .card-item { opacity:0; transform:translateY(24px); animation:cardIn .5s var(--ease-expo) forwards; }
         @keyframes cardIn { to { opacity:1; transform:none; } }
-
-        /* Pagination */
-        .page-btn {
-          width:40px; height:40px; border-radius:10px;
-          display:flex; align-items:center; justify-content:center;
-          border:1px solid hsl(var(--border));
-          background:hsl(var(--card)); cursor:pointer;
-          font-size:.875rem; font-weight:500;
-          color:hsl(var(--foreground));
-          transition:all .2s ease;
-          font-family:'DM Sans',sans-serif;
-        }
+        .page-btn { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; border:1px solid hsl(var(--border)); background:hsl(var(--card)); cursor:pointer; font-size:.875rem; font-weight:500; color:hsl(var(--foreground)); transition:all .2s ease; font-family:'DM Sans',sans-serif; }
         .page-btn:hover:not(:disabled) { border-color:hsl(var(--primary)); color:hsl(var(--primary)); background:hsl(var(--primary)/.06); }
         .page-btn.active { background:hsl(var(--primary)); color:hsl(var(--primary-foreground)); border-color:transparent; }
         .page-btn:disabled { opacity:.4; cursor:not-allowed; }
-
-        /* Loader */
         @keyframes spin360 { to{transform:rotate(360deg);} }
         .spin { animation:spin360 .75s linear infinite; }
-
-        /* Empty state */
         .empty-state { border:1.5px dashed hsl(var(--border)); border-radius:20px; }
-
-        /* Sort select */
-        .sort-select {
-          appearance:none;
-          border:1px solid hsl(var(--border));
-          background:hsl(var(--card));
-          border-radius:10px;
-          padding:8px 14px;
-          font-size:.875rem;
-          color:hsl(var(--foreground));
-          outline:none;
-          cursor:pointer;
-          font-family:'DM Sans',sans-serif;
-          transition:border-color .2s;
-        }
+        .sort-select { appearance:none; border:1px solid hsl(var(--border)); background:hsl(var(--card)); border-radius:10px; padding:8px 14px; font-size:.875rem; color:hsl(var(--foreground)); outline:none; cursor:pointer; font-family:'DM Sans',sans-serif; transition:border-color .2s; }
         .sort-select:focus { border-color:hsl(var(--primary)); }
       `}</style>
 
@@ -302,32 +208,29 @@ export default function BiensPage() {
 
           {/* ── Hero Search ── */}
           <div className={`mb-14 mx-auto max-w-3xl text-center pt-4 ${heroVisible ? "hv" : ""}`}>
-
-            {/* Badge */}
             <div
               className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-4 py-1.5"
               style={{ opacity:heroVisible?1:0, transition:"opacity .6s ease .1s", fontSize:".8rem", color:"hsl(var(--muted-foreground))" }}
             >
               <Sparkles className="h-3.5 w-3.5 text-primary" />
-              Recherche intelligente propulsée par l&apos;IA
+              <span>{t("hero.badge")}</span>
             </div>
 
             <h1
               className="mb-3 font-bold text-foreground"
               style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(2rem,5vw,3.2rem)", lineHeight:1.1 }}
             >
-              <span className="hw" style={{ transitionDelay:"150ms" }}>Trouvez votre bien </span>
-              <span className="hw text-primary" style={{ transitionDelay:"280ms" }}>&nbsp;magiquement</span>
+              <span className="hw" style={{ transitionDelay:"150ms" }}>{t("hero.title1")}</span>
+              <span className="hw text-primary" style={{ transitionDelay:"280ms" }}>&nbsp;{t("hero.title2")}</span>
             </h1>
 
             <p
               className="mb-8 text-muted-foreground"
               style={{ fontSize:"1rem", opacity:heroVisible?1:0, transform:heroVisible?"none":"translateY(12px)", transition:"all .7s var(--ease-expo) .4s" }}
             >
-              Décrivez simplement ce que vous cherchez — notre IA s&apos;occupe du reste.
+              {t("hero.desc")}
             </p>
 
-            {/* Search bar */}
             <form
               onSubmit={handleSmartSearch}
               style={{ opacity:heroVisible?1:0, transform:heroVisible?"none":"translateY(16px)", transition:"all .8s var(--ease-expo) .55s" }}
@@ -338,7 +241,7 @@ export default function BiensPage() {
                 </div>
                 <input
                   type="text"
-                  placeholder="Ex: Villa à Tanger avec piscine moins de 15 000 DH..."
+                  placeholder={t("search.placeholder")}
                   className="magic-input"
                   value={globalSearch}
                   onChange={(e) => setGlobalSearch(e.target.value)}
@@ -346,21 +249,17 @@ export default function BiensPage() {
                   onBlur={() => setSearchFocused(false)}
                 />
                 <button id="magic-btn" type="submit" className="magic-submit" disabled={loading}>
-                  {loading
-                    ? <Loader2 className="h-4 w-4 spin" />
-                    : <Search className="h-4 w-4" />
-                  }
-                  <span className="hidden sm:inline">Chercher</span>
+                  {loading ? <Loader2 className="h-4 w-4 spin" /> : <Search className="h-4 w-4" />}
+                  <span className="hidden sm:inline">{t("search.button")}</span>
                 </button>
               </div>
             </form>
 
-            {/* Suggestions */}
             <div
               className="mt-4 flex flex-wrap justify-center gap-2"
               style={{ opacity:heroVisible?1:0, transition:"opacity .8s ease .75s" }}
             >
-              <span style={{ fontSize:".75rem", color:"hsl(var(--muted-foreground))", alignSelf:"center" }}>Essayez :</span>
+              <span style={{ fontSize:".75rem", color:"hsl(var(--muted-foreground))", alignSelf:"center" }}>{t("search.try")}</span>
               {suggestions.map((s, i) => (
                 <button key={i} type="button" onClick={() => handleSuggestionClick(s)} className="sug-pill">
                   {s}
@@ -376,32 +275,30 @@ export default function BiensPage() {
           >
             <div>
               <h2 className="font-bold text-foreground" style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"1.5rem" }}>
-                {hasSearched ? "Résultats de votre recherche" : "Tous nos biens"}
+                <span>{hasSearched ? t("results.searched") : t("results.all")}</span>
               </h2>
               <p className="text-muted-foreground mt-0.5" style={{ fontSize:".85rem" }}>
                 <span className="font-semibold text-primary">{filteredResult.length}</span>{" "}
-                bien{filteredResult.length !== 1 ? "s" : ""} trouvé{filteredResult.length !== 1 ? "s" : ""}
+                <span>{filteredResult.length !== 1 ? t("results.foundPlural") : t("results.foundSingular")}</span>
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              {/* Filters toggle */}
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-all hover:border-primary/40 hover:bg-primary/5"
               >
                 <SlidersHorizontal className="h-4 w-4" />
-                Filtres
+                <span>{t("filters.toggle")}</span>
                 {activeFilters > 0 && <span className="filter-badge">{activeFilters}</span>}
               </button>
 
-              {/* Sort */}
               <div className="flex items-center gap-2">
                 <ArrowUpDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
                 <select value={sort} onChange={(e) => setSort(e.target.value as SortOption)} className="sort-select">
-                  <option value="recent">Plus récent</option>
-                  <option value="price-asc">Prix croissant</option>
-                  <option value="price-desc">Prix décroissant</option>
+                  <option value="recent">{t("sort.recent")}</option>
+                  <option value="price-asc">{t("sort.priceAsc")}</option>
+                  <option value="price-desc">{t("sort.priceDesc")}</option>
                 </select>
               </div>
             </div>
@@ -411,22 +308,22 @@ export default function BiensPage() {
           {showFilters && (
             <div className="filter-panel mb-8 rounded-2xl border border-border bg-card p-6 shadow-sm">
               <div className="mb-5 flex items-center justify-between">
-                <h3 className="font-semibold text-foreground" style={{ fontSize:".95rem" }}>Affiner la recherche</h3>
+                <h3 className="font-semibold text-foreground" style={{ fontSize:".95rem" }}>{t("filters.refine")}</h3>
                 {(activeFilters > 0 || globalSearch) && (
                   <button onClick={clearFilters} className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
-                    <X className="h-3.5 w-3.5" /> Tout effacer
+                    <X className="h-3.5 w-3.5" /> <span>{t("filters.clear")}</span>
                   </button>
                 )}
               </div>
               <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                 {[
-                  { label:"Ville", el: <select value={city} onChange={(e) => setCity(e.target.value)} className="filter-input"><option value="">Toutes</option>{cities.map((c) => <option key={c} value={c}>{c}</option>)}</select> },
-                  { label:"Type", el: <select value={type} onChange={(e) => setType(e.target.value as PropertyType|"")} className="filter-input"><option value="">Tous</option>{propertyTypes.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}</select> },
-                  { label:"Transaction", el: <select value={transaction} onChange={(e) => setTransaction(e.target.value as TransactionType|"")} className="filter-input"><option value="">Toutes</option>{transactionTypes.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}</select> },
-                  { label:"Pièces min.", el: <select value={rooms} onChange={(e) => setRooms(e.target.value)} className="filter-input"><option value="">Toutes</option>{[1,2,3,4,5,6].map((n) => <option key={n} value={n}>{n}+</option>)}</select> },
-                  { label:"Prix min (DH)", el: <input type="number" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} placeholder="0" className="filter-input" /> },
-                  { label:"Prix max (DH)", el: <input type="number" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder="Illimité" className="filter-input" /> },
-                  { label:"Surface min (m²)", el: <input type="number" value={minSurface} onChange={(e) => setMinSurface(e.target.value)} placeholder="0" className="filter-input" /> },
+                  { label: t("filters.city"), el: <select value={city} onChange={(e) => setCity(e.target.value)} className="filter-input"><option value="">{t("filters.allFeminine")}</option>{cities.map((c) => <option key={c} value={c}>{c}</option>)}</select> },
+                  { label: t("filters.type"), el: <select value={type} onChange={(e) => setType(e.target.value as PropertyType|"")} className="filter-input"><option value="">{t("filters.allMasculine")}</option>{propertyTypes.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}</select> },
+                  { label: t("filters.transaction"), el: <select value={transaction} onChange={(e) => setTransaction(e.target.value as TransactionType|"")} className="filter-input"><option value="">{t("filters.allFeminine")}</option>{transactionTypes.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}</select> },
+                  { label: t("filters.rooms"), el: <select value={rooms} onChange={(e) => setRooms(e.target.value)} className="filter-input"><option value="">{t("filters.allFeminine")}</option>{[1,2,3,4,5,6].map((n) => <option key={n} value={n}>{n}+</option>)}</select> },
+                  { label: t("filters.minPrice"), el: <input type="number" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} placeholder="0" className="filter-input" /> },
+                  { label: t("filters.maxPrice"), el: <input type="number" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder={t("filters.unlimited")} className="filter-input" /> },
+                  { label: t("filters.minSurface"), el: <input type="number" value={minSurface} onChange={(e) => setMinSurface(e.target.value)} placeholder="0" className="filter-input" /> },
                 ].map(({ label, el }) => (
                   <div key={label}>
                     <span className="filter-label">{label}</span>
@@ -441,7 +338,7 @@ export default function BiensPage() {
           {loading ? (
             <div className="flex flex-col items-center justify-center py-28 text-muted-foreground gap-4">
               <div style={{ width:48,height:48,borderRadius:"50%",border:"3px solid hsl(var(--border))",borderTopColor:"hsl(var(--primary))",animation:"spin360 .8s linear infinite" }} />
-              <p style={{ fontSize:".9rem" }}>Analyse de votre demande en cours…</p>
+              <p style={{ fontSize:".9rem" }}>{t("states.loading")}</p>
             </div>
           ) : currentItems.length > 0 ? (
             <>
@@ -457,7 +354,6 @@ export default function BiensPage() {
                 ))}
               </div>
 
-              {/* Pagination */}
               {totalPages > 1 && (
                 <div className="mt-14 flex items-center justify-center gap-2">
                   <button
@@ -470,7 +366,6 @@ export default function BiensPage() {
 
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
                     .filter(p => {
-                      // Logique stricte : n'afficher que 2 pages adjacentes
                       if (currentPage === totalPages) return p === totalPages || p === totalPages - 1;
                       return p === currentPage || p === currentPage + 1;
                     })
@@ -501,13 +396,13 @@ export default function BiensPage() {
                 <Building2 className="h-7 w-7 text-muted-foreground" style={{ opacity:.5 }} />
               </div>
               <h3 className="mb-2 font-bold text-foreground" style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"1.5rem" }}>
-                Aucun bien trouvé
+                {t("states.emptyTitle")}
               </h3>
               <p className="mb-8 text-muted-foreground" style={{ fontSize:".9rem" }}>
-                Essayez de reformuler votre recherche ou de retirer des filtres.
+                {t("states.emptyDesc")}
               </p>
               <Button onClick={clearFilters} className="gap-2 rounded-full px-6">
-                Voir tous les biens
+                <span>{t("states.emptyButton")}</span>
               </Button>
             </div>
           )}

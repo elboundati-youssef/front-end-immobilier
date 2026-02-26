@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useEffect, useRef, use } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import Image from "next/image"
 // 🌟 IMPORT DYNAMIQUE DE NEXT.JS 🌟
 import dynamic from 'next/dynamic'
+import { useTranslations } from "next-intl" // 🌟 IMPORT NEXT-INTL
 import { Upload, Plus, Check, Loader2, AlertCircle, FileImage, X, ArrowLeft, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Navbar } from "@/components/navbar"
@@ -17,12 +18,6 @@ const MapPicker = dynamic(() => import('@/components/MapPicker'), {
     ssr: false, 
     loading: () => <div className="h-full w-full flex items-center justify-center bg-secondary/50"><Loader2 className="animate-spin text-primary" /></div>
 })
-
-const equipmentsList = [
-  "Parking", "Piscine", "Jardin", "Ascenseur", "Climatisation",
-  "Securite 24h", "Terrasse", "Garage", "Fibre optique", "Domotique",
-  "Vue mer", "Proche ecoles", "Meuble",
-]
 
 const cityCoordinates: Record<string, [number, number]> = {
     "Tanger": [35.7595, -5.8340],
@@ -43,13 +38,18 @@ const MAX_IMAGES = 5;
 const API_URL = "http://127.0.0.1:8000";
 
 export default function ModifierPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = useTranslations("EditPage") // 🌟 INITIALISATION TRADUCTION
   const { id } = use(params)
   const router = useRouter()
+  const pathname = usePathname()
+  
+  // 🌟 GESTION DE LA LANGUE POUR LES REDIRECTIONS
+  const currentLocale = pathname.split("/")[1] || "fr"
+  const l = (path: string) => `/${currentLocale}${path}`
+
   const fileInputRef = useRef<HTMLInputElement>(null)
   
-  // 🌟 NOUVEL ÉTAT POUR LA PROTECTION DES ROUTES 🌟
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
-
   const [loadingData, setLoadingData] = useState(true)
   const [loadingSubmit, setLoadingSubmit] = useState(false)
   const [error, setError] = useState("")
@@ -57,7 +57,6 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
   const [existingImages, setExistingImages] = useState<string[]>([])
   const [newFiles, setNewFiles] = useState<File[]>([])
 
-  // --- ÉTATS POUR LA CARTE ---
   const [mapCenter, setMapCenter] = useState<[number, number]>([35.7595, -5.8340])
   const [markerPosition, setMarkerPosition] = useState<any>(null)
 
@@ -76,31 +75,54 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
     equipments: [] as string[],
   })
 
-  // 🌟 PROTECTION DE LA ROUTE & GESTION DES RÔLES 🌟
+  // Traduction des équipements
+  const equipmentsList = [
+    { key: "Parking", label: t("equipments.parking") },
+    { key: "Piscine", label: t("equipments.pool") },
+    { key: "Jardin", label: t("equipments.garden") },
+    { key: "Ascenseur", label: t("equipments.elevator") },
+    { key: "Climatisation", label: t("equipments.ac") },
+    { key: "Securite 24h", label: t("equipments.security") },
+    { key: "Terrasse", label: t("equipments.terrace") },
+    { key: "Garage", label: t("equipments.garage") },
+    { key: "Fibre optique", label: t("equipments.fiber") },
+    { key: "Domotique", label: t("equipments.smartHome") },
+    { key: "Vue mer", label: t("equipments.seaView") },
+    { key: "Proche ecoles", label: t("equipments.schools") },
+    { key: "Meuble", label: t("equipments.furnished") }
+  ]
+
+  const getTranslatedLabel = (category: string, value: string, defaultLabel: string) => {
+    try {
+      const tSearch = require(`@/messages/${currentLocale}.json`).SearchBar;
+      return tSearch[category][value] || defaultLabel;
+    } catch {
+      return defaultLabel;
+    }
+  }
+
   useEffect(() => {
     const token = localStorage.getItem("token")
     const userStr = localStorage.getItem("user")
     
     if (!token || !userStr) {
-      router.push("/connexion")
+      router.push(l("/connexion"))
       return;
     }
 
     try {
       const user = JSON.parse(userStr);
-      // On bloque les clients (seuls les admins, agences ou propriétaires peuvent modifier)
       if (user.role === 'client') {
-        router.push('/');
+        router.push(l('/'));
         return;
       }
       setIsCheckingAuth(false);
     } catch (e) {
-      router.push("/connexion")
+      router.push(l("/connexion"))
     }
   }, [router])
 
   useEffect(() => {
-    // Si on est encore en train de vérifier l'auth, on ne fetch pas les données
     if (isCheckingAuth) return;
 
     const fetchProperty = async () => {
@@ -137,7 +159,6 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
 
         setExistingImages(loadedImages)
 
-        // CHARGEMENT DU GPS EXISTANT
         if (data.latitude && data.longitude) {
             import('leaflet').then((L) => {
                 const lat = parseFloat(data.latitude);
@@ -151,7 +172,7 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
 
       } catch (err) {
         console.error(err)
-        setError("Impossible de charger les informations du bien.")
+        setError(t("alerts.loadError"))
       } finally {
         setLoadingData(false)
       }
@@ -175,12 +196,12 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
     }
   }
 
-  const toggleEquipment = (eq: string) => {
+  const toggleEquipment = (eqKey: string) => {
     setFormData(prev => ({
       ...prev,
-      equipments: prev.equipments.includes(eq)
-        ? prev.equipments.filter(e => e !== eq)
-        : [...prev.equipments, eq]
+      equipments: prev.equipments.includes(eqKey)
+        ? prev.equipments.filter(e => e !== eqKey)
+        : [...prev.equipments, eqKey]
     }))
   }
 
@@ -190,14 +211,14 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
       const remainingSlots = MAX_IMAGES - newFiles.length;
 
       if (remainingSlots <= 0) {
-        setError("Limite de 5 nouvelles images atteinte.");
+        setError(t("alerts.limitReached"));
         return;
       }
 
       let filesToAdd = files;
       if (files.length > remainingSlots) {
         filesToAdd = files.slice(0, remainingSlots);
-        setError(`Seulement ${remainingSlots} images ajoutées.`);
+        setError(t("alerts.partialAdd").replace("{num}", remainingSlots.toString()));
       } else {
         setError(""); 
       }
@@ -247,18 +268,17 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
         headers: { "Content-Type": "multipart/form-data" },
       })
       
-      router.push("/tableau-de-bord") 
+      router.push(l("/tableau-de-bord")) 
       
     } catch (err: any) {
       console.error(err)
-      setError(err.response?.data?.message || "Erreur lors de la modification.")
+      setError(err.response?.data?.message || t("alerts.updateError"))
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } finally {
       setLoadingSubmit(false)
     }
   }
 
-  // 🌟 AFFICHAGE DU CHARGEMENT PENDANT LA VÉRIFICATION D'AUTHENTIFICATION 🌟
   if (isCheckingAuth || loadingData) {
       return (
         <div className="min-h-screen bg-background flex flex-col">
@@ -276,83 +296,81 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
 
       <div className="mx-auto max-w-3xl px-4 py-8 lg:px-8">
         <Button variant="ghost" onClick={() => router.back()} className="mb-6 gap-2 pl-0 hover:bg-transparent hover:text-primary">
-            <ArrowLeft className="h-4 w-4" /> Retour
+            <ArrowLeft className="h-4 w-4" /> <span>{t("buttons.back")}</span>
         </Button>
 
-        <h1 className="mb-2 font-serif text-3xl font-bold text-foreground">Modifier l&apos;annonce</h1>
-        <p className="mb-8 text-muted-foreground">
-          Mettez à jour les informations de votre bien.
-        </p>
+        <h1 className="mb-2 font-serif text-3xl font-bold text-foreground">{t("title")}</h1>
+        <p className="mb-8 text-muted-foreground">{t("subtitle")}</p>
 
         {error && (
           <div className="mb-6 flex items-center gap-2 rounded-lg bg-red-50 p-4 text-sm text-red-600 border border-red-200">
-            <AlertCircle className="h-4 w-4" />
-            {error}
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{error}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           
           <div className="rounded-xl border border-border bg-card p-6">
-            <h2 className="mb-4 font-serif text-xl font-bold text-foreground">Informations générales</h2>
+            <h2 className="mb-4 font-serif text-xl font-bold text-foreground">{t("sections.general")}</h2>
             <div className="flex flex-col gap-4">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Titre</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">{t("fields.title")}</label>
                 <input type="text" name="title" value={formData.title} onChange={handleChange} required className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-foreground">Transaction</label>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">{t("fields.transaction")}</label>
                   <select name="transaction_type" value={formData.transaction_type} onChange={handleChange} required className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                    <option value="">Choisir</option>
-                    {transactionTypes.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    <option value="">{t("select.choose")}</option>
+                    {transactionTypes.map((tr) => <option key={tr.value} value={tr.value}>{getTranslatedLabel("transactionTypes", tr.value, tr.label)}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-foreground">Type de bien</label>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">{t("fields.propertyType")}</label>
                   <select name="property_type" value={formData.property_type} onChange={handleChange} required className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                    <option value="">Choisir</option>
-                    {propertyTypes.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    <option value="">{t("select.choose")}</option>
+                    {propertyTypes.map((pt) => <option key={pt.value} value={pt.value}>{getTranslatedLabel("propertyTypes", pt.value, pt.label)}</option>)}
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Description</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">{t("fields.desc")}</label>
                 <textarea name="description" value={formData.description} onChange={handleChange} rows={4} required className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Prix (DH)</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">{t("fields.price")}</label>
                 <input type="number" name="price" value={formData.price} onChange={handleChange} required className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
             </div>
           </div>
 
           <div className="rounded-xl border border-border bg-card p-6">
-            <h2 className="mb-4 font-serif text-xl font-bold text-foreground">Détails</h2>
+            <h2 className="mb-4 font-serif text-xl font-bold text-foreground">{t("sections.details")}</h2>
             <div className="grid gap-4 md:grid-cols-2">
-              <div><label className="mb-1.5 block text-sm font-medium text-foreground">Surface (m²)</label><input name="surface" type="number" value={formData.surface} onChange={handleChange} required className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" /></div>
-              <div><label className="mb-1.5 block text-sm font-medium text-foreground">Pièces</label><input name="rooms" type="number" value={formData.rooms} onChange={handleChange} className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" /></div>
-              <div><label className="mb-1.5 block text-sm font-medium text-foreground">Chambres</label><input name="bedrooms" type="number" value={formData.bedrooms} onChange={handleChange} className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" /></div>
-              <div><label className="mb-1.5 block text-sm font-medium text-foreground">Salles de bain</label><input name="bathrooms" type="number" value={formData.bathrooms} onChange={handleChange} className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" /></div>
+              <div><label className="mb-1.5 block text-sm font-medium text-foreground">{t("fields.surface")}</label><input name="surface" type="number" value={formData.surface} onChange={handleChange} required className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" /></div>
+              <div><label className="mb-1.5 block text-sm font-medium text-foreground">{t("fields.rooms")}</label><input name="rooms" type="number" value={formData.rooms} onChange={handleChange} className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" /></div>
+              <div><label className="mb-1.5 block text-sm font-medium text-foreground">{t("fields.bedrooms")}</label><input name="bedrooms" type="number" value={formData.bedrooms} onChange={handleChange} className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" /></div>
+              <div><label className="mb-1.5 block text-sm font-medium text-foreground">{t("fields.bathrooms")}</label><input name="bathrooms" type="number" value={formData.bathrooms} onChange={handleChange} className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" /></div>
             </div>
           </div>
 
           <div className="rounded-xl border border-border bg-card p-6">
-            <h2 className="mb-4 font-serif text-xl font-bold text-foreground">Localisation</h2>
+            <h2 className="mb-4 font-serif text-xl font-bold text-foreground">{t("sections.location")}</h2>
             <div className="flex flex-col gap-4">
               <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-foreground">Ville</label>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">{t("fields.city")}</label>
                     <select name="city" value={formData.city} onChange={handleChange} required className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                      <option value="">Choisir</option>
+                      <option value="">{t("select.chooseCity")}</option>
                       {cities.map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-foreground">Adresse</label>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">{t("fields.address")}</label>
                     <input name="address" type="text" value={formData.address} onChange={handleChange} required className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
                   </div>
               </div>
@@ -361,9 +379,9 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
               <div className="mt-2">
                   <label className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
                       <MapPin className="h-4 w-4 text-primary" /> 
-                      Emplacement sur la carte (Optionnel)
+                      {t("map.title")}
                   </label>
-                  <p className="text-xs text-muted-foreground mb-3">Cliquez sur la carte pour modifier l'emplacement exact du bien.</p>
+                  <p className="text-xs text-muted-foreground mb-3">{t("map.desc")}</p>
                   
                   <div className="h-[300px] w-full rounded-xl overflow-hidden border border-border relative z-0">
                       <MapPicker mapCenter={mapCenter} markerPosition={markerPosition} setMarkerPosition={setMarkerPosition} />
@@ -371,8 +389,8 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
                   
                   {markerPosition && (
                       <div className="mt-2 flex justify-between items-center bg-green-50 text-green-700 px-3 py-2 rounded-lg border border-green-200 text-xs">
-                          <span className="flex items-center gap-2"><Check className="h-3 w-3" /> Emplacement enregistré ({markerPosition.lat.toFixed(4)}, {markerPosition.lng.toFixed(4)})</span>
-                          <button type="button" onClick={() => setMarkerPosition(null)} className="font-semibold underline hover:text-green-800">Effacer</button>
+                          <span className="flex items-center gap-2"><Check className="h-3 w-3" /> {t("map.saved")} ({markerPosition.lat.toFixed(4)}, {markerPosition.lng.toFixed(4)})</span>
+                          <button type="button" onClick={() => setMarkerPosition(null)} className="font-semibold underline hover:text-green-800">{t("map.clear")}</button>
                       </div>
                   )}
               </div>
@@ -380,21 +398,21 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
           </div>
 
           <div className="rounded-xl border border-border bg-card p-6">
-            <h2 className="mb-4 font-serif text-xl font-bold text-foreground">Équipements</h2>
+            <h2 className="mb-4 font-serif text-xl font-bold text-foreground">{t("sections.equipments")}</h2>
             <div className="flex flex-wrap gap-2">
               {equipmentsList.map((eq) => (
                 <button
-                  key={eq}
+                  key={eq.key}
                   type="button"
-                  onClick={() => toggleEquipment(eq)}
+                  onClick={() => toggleEquipment(eq.key)}
                   className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm transition-colors ${
-                    formData.equipments.includes(eq)
+                    formData.equipments.includes(eq.key)
                       ? "bg-primary text-primary-foreground"
                       : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                   }`}
                 >
-                  {formData.equipments.includes(eq) && <Check className="h-3.5 w-3.5" />}
-                  {eq}
+                  {formData.equipments.includes(eq.key) && <Check className="h-3.5 w-3.5" />}
+                  <span>{eq.label}</span>
                 </button>
               ))}
             </div>
@@ -402,17 +420,21 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
 
           <div className="rounded-xl border border-border bg-card p-6">
             <div className="flex items-center justify-between mb-4">
-               <h2 className="font-serif text-xl font-bold text-foreground">Photos</h2>
+               <h2 className="font-serif text-xl font-bold text-foreground">{t("sections.photos")}</h2>
             </div>
 
-            <div className="mb-4 rounded-lg bg-blue-50 p-4 text-sm text-blue-700 border border-blue-100 flex items-start gap-2">
-                <AlertCircle className="h-5 w-5 shrink-0" />
-                <p>Si vous ajoutez de nouvelles photos ci-dessous, elles <strong>remplaceront</strong> toutes les photos actuelles.</p>
-            </div>
+          <div className="mb-4 rounded-lg bg-blue-50 p-4 text-sm text-blue-700 border border-blue-100 flex items-start gap-2">
+    <AlertCircle className="h-5 w-5 shrink-0" />
+    <p>
+        {t.rich("photos.warning", {
+            strong: (chunks) => <strong>{chunks}</strong>
+        })}
+    </p>
+</div>
 
             {existingImages.length > 0 && newFiles.length === 0 && (
                 <div className="mb-6">
-                    <p className="text-sm font-medium mb-2">Photos actuelles :</p>
+                    <p className="text-sm font-medium mb-2">{t("photos.current")}</p>
                     <div className="flex flex-wrap gap-3">
                         {existingImages.map((img, idx) => (
                             <div key={idx} className="relative h-20 w-28 rounded-lg overflow-hidden border">
@@ -434,7 +456,7 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
 
             <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-secondary/30 px-6 py-8 text-center">
               <Upload className="mb-3 h-8 w-8 text-muted-foreground" />
-              <p className="mb-1 text-sm font-medium text-foreground">Glissez vos nouvelles photos</p>
+              <p className="mb-1 text-sm font-medium text-foreground">{t("photos.dragDrop")}</p>
               
               <Button 
                 type="button" 
@@ -445,7 +467,7 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
                 disabled={newFiles.length >= MAX_IMAGES}
               >
                 <Plus className="h-4 w-4" />
-                {newFiles.length >= MAX_IMAGES ? "Limite atteinte" : "Sélectionner nouvelles photos"}
+                <span>{newFiles.length >= MAX_IMAGES ? t("photos.limit") : t("photos.chooseFiles")}</span>
               </Button>
 
               {newFiles.length > 0 && (
@@ -464,9 +486,11 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
           </div>
 
           <div className="flex gap-4">
-            <Button type="button" variant="outline" className="flex-1" onClick={() => router.back()}>Annuler</Button>
+            <Button type="button" variant="outline" className="flex-1" onClick={() => router.back()}>
+              <span>{t("buttons.cancel")}</span>
+            </Button>
             <Button type="submit" size="lg" className="flex-1 text-base" disabled={loadingSubmit}>
-                {loadingSubmit ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enregistrement...</> : "Sauvegarder les modifications"}
+                {loadingSubmit ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> <span>{t("buttons.saving")}</span></> : <span>{t("buttons.save")}</span>}
             </Button>
           </div>
 

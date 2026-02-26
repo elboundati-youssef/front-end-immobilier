@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
+import { useTranslations } from "next-intl" // 🌟 IMPORT NEXT-INTL
 import dynamic from 'next/dynamic'
 import { Upload, Plus, Check, Loader2, AlertCircle, FileImage, X, MapPin as MapPinIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -15,12 +16,6 @@ const MapPicker = dynamic(() => import('@/components/MapPicker'), {
     ssr: false, 
     loading: () => <div className="h-full w-full flex items-center justify-center bg-secondary/50"><Loader2 className="animate-spin text-primary" /></div>
 })
-
-const equipmentsList = [
-  "Parking", "Piscine", "Jardin", "Ascenseur", "Climatisation",
-  "Securite 24h", "Terrasse", "Garage", "Fibre optique", "Domotique",
-  "Vue mer", "Proche ecoles", "Meuble",
-]
 
 const MAX_IMAGES = 5;
 
@@ -41,14 +36,20 @@ const cityCoordinates: Record<string, [number, number]> = {
 }
 
 export default function PublierPage() {
+  const t = useTranslations("PublishPage") // 🌟 INITIALISATION TRADUCTION
   const router = useRouter()
+  const pathname = usePathname()
+  
+  // 🌟 GESTION DE LA LANGUE POUR LA REDIRECTION
+  const currentLocale = pathname.split("/")[1] || "fr"
+  const l = (path: string) => `/${currentLocale}${path}`
+
   const fileInputRef = useRef<HTMLInputElement>(null)
   
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   
-  // 🌟 NOUVEL ÉTAT POUR LA PROTECTION DES ROUTES 🌟
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   
   // Stockage des fichiers images
@@ -73,29 +74,52 @@ export default function PublierPage() {
     equipments: [] as string[],
   })
 
+  // Traduction des équipements (les clés d'origine restent pour l'API, le label change)
+  const equipmentsList = [
+    { key: "Parking", label: t("equipments.parking") },
+    { key: "Piscine", label: t("equipments.pool") },
+    { key: "Jardin", label: t("equipments.garden") },
+    { key: "Ascenseur", label: t("equipments.elevator") },
+    { key: "Climatisation", label: t("equipments.ac") },
+    { key: "Securite 24h", label: t("equipments.security") },
+    { key: "Terrasse", label: t("equipments.terrace") },
+    { key: "Garage", label: t("equipments.garage") },
+    { key: "Fibre optique", label: t("equipments.fiber") },
+    { key: "Domotique", label: t("equipments.smartHome") },
+    { key: "Vue mer", label: t("equipments.seaView") },
+    { key: "Proche ecoles", label: t("equipments.schools") },
+    { key: "Meuble", label: t("equipments.furnished") }
+  ]
+
+  // Helper pour traduire les selects
+  const getTranslatedLabel = (category: string, value: string, defaultLabel: string) => {
+    try {
+      const tSearch = require(`@/messages/${currentLocale}.json`).SearchBar;
+      return tSearch[category][value] || defaultLabel;
+    } catch {
+      return defaultLabel;
+    }
+  }
+
   // 🌟 PROTECTION DE LA ROUTE & GESTION DES RÔLES 🌟
   useEffect(() => {
     const token = localStorage.getItem("token")
     const userStr = localStorage.getItem("user")
     
     if (!token || !userStr) {
-      router.push("/connexion")
+      router.push(l("/connexion"))
       return;
     }
 
     try {
       const user = JSON.parse(userStr);
-      // On bloque les clients
       if (user.role === 'client') {
-        router.push('/');
+        router.push(l('/'));
         return;
       }
-      
-      // Si l'utilisateur est Agence, Propriétaire ou Admin, on le laisse passer
       setIsCheckingAuth(false);
     } catch (e) {
-      // En cas de problème de lecture du localstorage
-      router.push("/connexion")
+      router.push(l("/connexion"))
     }
   }, [router])
 
@@ -104,19 +128,18 @@ export default function PublierPage() {
     setFormData({ ...formData, [name]: value })
     setError("")
 
-    // Si l'utilisateur choisit une ville, on centre la carte dessus
     if (name === 'city' && cityCoordinates[value]) {
         setMapCenter(cityCoordinates[value]);
-        setMarkerPosition(null); // On efface le marqueur précédent
+        setMarkerPosition(null); 
     }
   }
 
-  const toggleEquipment = (eq: string) => {
+  const toggleEquipment = (eqKey: string) => {
     setFormData(prev => ({
       ...prev,
-      equipments: prev.equipments.includes(eq)
-        ? prev.equipments.filter(e => e !== eq)
-        : [...prev.equipments, eq]
+      equipments: prev.equipments.includes(eqKey)
+        ? prev.equipments.filter(e => e !== eqKey)
+        : [...prev.equipments, eqKey]
     }))
   }
 
@@ -128,14 +151,14 @@ export default function PublierPage() {
       const remainingSlots = MAX_IMAGES - selectedFiles.length;
 
       if (remainingSlots <= 0) {
-        setError("Vous avez déjà atteint la limite de 5 images.");
+        setError(t("alerts.limitReached"));
         return;
       }
 
       let filesToAdd = newFiles;
       if (newFiles.length > remainingSlots) {
         filesToAdd = newFiles.slice(0, remainingSlots);
-        setError(`Seules ${remainingSlots} images ont été ajoutées (limite de 5 atteinte).`);
+        setError(t("alerts.partialAdd").replace("{num}", remainingSlots.toString()));
       } else {
         setError(""); 
       }
@@ -169,7 +192,6 @@ export default function PublierPage() {
         }
       })
 
-      // 🌟 AJOUT DES COORDONNÉES GPS AU FORMDATA 🌟
       if (markerPosition) {
           data.append('latitude', markerPosition.lat.toString());
           data.append('longitude', markerPosition.lng.toString());
@@ -189,7 +211,7 @@ export default function PublierPage() {
       }
     } catch (err: any) {
       console.error(err)
-      const message = err.response?.data?.message || "Erreur lors de la publication."
+      const message = err.response?.data?.message || t("alerts.publishError")
       setError(message)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } finally {
@@ -217,9 +239,9 @@ export default function PublierPage() {
           <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
             <Check className="h-8 w-8 text-green-600" />
           </div>
-          <h1 className="mb-4 font-serif text-3xl font-bold text-foreground">Annonce soumise</h1>
+          <h1 className="mb-4 font-serif text-3xl font-bold text-foreground">{t("success.title")}</h1>
           <p className="mb-8 text-muted-foreground">
-            Votre annonce a été soumise avec succès. Elle sera publiée après vérification par notre équipe.
+            {t("success.desc")}
           </p>
           <div className="flex justify-center gap-4">
             <Button onClick={() => {
@@ -230,9 +252,9 @@ export default function PublierPage() {
                     title: "", transaction_type: "", property_type: "", description: "", price: "",
                     surface: "", rooms: "", bedrooms: "", bathrooms: "", city: "", address: "", equipments: []
                 })
-            }}>Publier une autre annonce</Button>
-            <Button variant="outline" onClick={() => router.push("/tableau-de-bord")}>
-              Mon tableau de bord
+            }}>{t("success.btnNew")}</Button>
+            <Button variant="outline" onClick={() => router.push(l("/tableau-de-bord"))}>
+              {t("success.btnDash")}
             </Button>
           </div>
         </div>
@@ -246,30 +268,30 @@ export default function PublierPage() {
       <Navbar />
 
       <div className="mx-auto max-w-3xl px-4 py-8 lg:px-8">
-        <h1 className="mb-2 font-serif text-3xl font-bold text-foreground">Publier une annonce</h1>
+        <h1 className="mb-2 font-serif text-3xl font-bold text-foreground">{t("title")}</h1>
         <p className="mb-8 text-muted-foreground">
-          Remplissez les informations ci-dessous pour publier votre bien immobilier.
+          {t("subtitle")}
         </p>
 
         {error && (
           <div className="mb-6 flex items-center gap-2 rounded-lg bg-red-50 p-4 text-sm text-red-600 border border-red-200">
-            <AlertCircle className="h-4 w-4" />
-            {error}
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{error}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <div className="rounded-xl border border-border bg-card p-6">
-            <h2 className="mb-4 font-serif text-xl font-bold text-foreground">Informations générales</h2>
+            <h2 className="mb-4 font-serif text-xl font-bold text-foreground">{t("sections.general")}</h2>
             <div className="flex flex-col gap-4">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Titre de l&apos;annonce</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">{t("fields.title")}</label>
                 <input
                   type="text"
                   name="title"
                   value={formData.title}
                   onChange={handleChange}
-                  placeholder="Ex: Appartement moderne au centre-ville"
+                  placeholder={t("placeholders.title")}
                   required
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
@@ -277,7 +299,7 @@ export default function PublierPage() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-foreground">Type de transaction</label>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">{t("fields.transaction")}</label>
                   <select 
                     name="transaction_type" 
                     value={formData.transaction_type}
@@ -285,14 +307,14 @@ export default function PublierPage() {
                     required 
                     className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   >
-                    <option value="">Choisir</option>
-                    {transactionTypes.map((t) => (
-                      <option key={t.value} value={t.value}>{t.label}</option>
+                    <option value="">{t("select.choose")}</option>
+                    {transactionTypes.map((tr) => (
+                      <option key={tr.value} value={tr.value}>{getTranslatedLabel("transactionTypes", tr.value, tr.label)}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-foreground">Type de bien</label>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">{t("fields.propertyType")}</label>
                   <select 
                     name="property_type" 
                     value={formData.property_type}
@@ -300,29 +322,29 @@ export default function PublierPage() {
                     required 
                     className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   >
-                    <option value="">Choisir</option>
-                    {propertyTypes.map((t) => (
-                      <option key={t.value} value={t.value}>{t.label}</option>
+                    <option value="">{t("select.choose")}</option>
+                    {propertyTypes.map((pt) => (
+                      <option key={pt.value} value={pt.value}>{getTranslatedLabel("propertyTypes", pt.value, pt.label)}</option>
                     ))}
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Description</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">{t("fields.desc")}</label>
                 <textarea
                   name="description"
                   value={formData.description}
                   onChange={handleChange}
                   rows={4}
-                  placeholder="Décrivez votre bien en détail..."
+                  placeholder={t("placeholders.desc")}
                   required
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Prix (DH)</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">{t("fields.price")}</label>
                 <input
                   type="number"
                   name="price"
@@ -337,53 +359,53 @@ export default function PublierPage() {
           </div>
 
           <div className="rounded-xl border border-border bg-card p-6">
-            <h2 className="mb-4 font-serif text-xl font-bold text-foreground">Détails du bien</h2>
+            <h2 className="mb-4 font-serif text-xl font-bold text-foreground">{t("sections.details")}</h2>
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Surface (m²)</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">{t("fields.surface")}</label>
                 <input name="surface" type="number" value={formData.surface} onChange={handleChange} required className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Nombre de pièces</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">{t("fields.rooms")}</label>
                 <input name="rooms" type="number" value={formData.rooms} onChange={handleChange} className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Chambres</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">{t("fields.bedrooms")}</label>
                 <input name="bedrooms" type="number" value={formData.bedrooms} onChange={handleChange} className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
                <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Salles de bain</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">{t("fields.bathrooms")}</label>
                 <input name="bathrooms" type="number" value={formData.bathrooms} onChange={handleChange} className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
             </div>
           </div>
 
           <div className="rounded-xl border border-border bg-card p-6">
-            <h2 className="mb-4 font-serif text-xl font-bold text-foreground">Localisation</h2>
+            <h2 className="mb-4 font-serif text-xl font-bold text-foreground">{t("sections.location")}</h2>
             <div className="flex flex-col gap-4">
               <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-foreground">Ville</label>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">{t("fields.city")}</label>
                     <select name="city" value={formData.city} onChange={handleChange} required className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                      <option value="">Choisir une ville</option>
+                      <option value="">{t("select.chooseCity")}</option>
                       {cities.map((c) => (
                         <option key={c} value={c}>{c}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-foreground">Adresse complète</label>
-                    <input name="address" type="text" value={formData.address} onChange={handleChange} required placeholder="Ex: Quartier Malabata, Rue 2" className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">{t("fields.address")}</label>
+                    <input name="address" type="text" value={formData.address} onChange={handleChange} required placeholder={t("placeholders.address")} className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
                   </div>
               </div>
 
-              {/* 🌟 LA CARTE INTERACTIVE (SANS SSR) 🌟 */}
+              {/* 🌟 LA CARTE INTERACTIVE 🌟 */}
               <div className="mt-2">
                   <label className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
                       <MapPinIcon className="h-4 w-4 text-primary" /> 
-                      Placer sur la carte (Optionnel)
+                      {t("map.title")}
                   </label>
-                  <p className="text-xs text-muted-foreground mb-3">Cliquez sur la carte pour définir l'emplacement exact du bien. Cela aidera les clients à mieux se projeter.</p>
+                  <p className="text-xs text-muted-foreground mb-3">{t("map.desc")}</p>
                   
                   <div className="h-[300px] w-full rounded-xl overflow-hidden border border-border relative z-0">
                       <MapPicker mapCenter={mapCenter} markerPosition={markerPosition} setMarkerPosition={setMarkerPosition} />
@@ -391,8 +413,8 @@ export default function PublierPage() {
                   
                   {markerPosition && (
                       <div className="mt-2 flex justify-between items-center bg-green-50 text-green-700 px-3 py-2 rounded-lg border border-green-200 text-xs">
-                          <span className="flex items-center gap-2"><Check className="h-3 w-3" /> Emplacement enregistré ({markerPosition.lat.toFixed(4)}, {markerPosition.lng.toFixed(4)})</span>
-                          <button type="button" onClick={() => setMarkerPosition(null)} className="font-semibold underline hover:text-green-800">Effacer</button>
+                          <span className="flex items-center gap-2"><Check className="h-3 w-3" /> {t("map.saved")} ({markerPosition.lat.toFixed(4)}, {markerPosition.lng.toFixed(4)})</span>
+                          <button type="button" onClick={() => setMarkerPosition(null)} className="font-semibold underline hover:text-green-800">{t("map.clear")}</button>
                       </div>
                   )}
               </div>
@@ -400,21 +422,21 @@ export default function PublierPage() {
           </div>
 
           <div className="rounded-xl border border-border bg-card p-6">
-            <h2 className="mb-4 font-serif text-xl font-bold text-foreground">Équipements</h2>
+            <h2 className="mb-4 font-serif text-xl font-bold text-foreground">{t("sections.equipments")}</h2>
             <div className="flex flex-wrap gap-2">
               {equipmentsList.map((eq) => (
                 <button
-                  key={eq}
+                  key={eq.key}
                   type="button"
-                  onClick={() => toggleEquipment(eq)}
+                  onClick={() => toggleEquipment(eq.key)}
                   className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm transition-colors ${
-                    formData.equipments.includes(eq)
+                    formData.equipments.includes(eq.key)
                       ? "bg-primary text-primary-foreground"
                       : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                   }`}
                 >
-                  {formData.equipments.includes(eq) && <Check className="h-3.5 w-3.5" />}
-                  {eq}
+                  {formData.equipments.includes(eq.key) && <Check className="h-3.5 w-3.5" />}
+                  <span>{eq.label}</span>
                 </button>
               ))}
             </div>
@@ -422,8 +444,10 @@ export default function PublierPage() {
 
           <div className="rounded-xl border border-border bg-card p-6">
             <div className="flex items-center justify-between mb-4">
-               <h2 className="font-serif text-xl font-bold text-foreground">Photos</h2>
-               <span className="text-sm text-muted-foreground">{selectedFiles.length}/{MAX_IMAGES} images</span>
+               <h2 className="font-serif text-xl font-bold text-foreground">{t("sections.photos")}</h2>
+               <span className="text-sm text-muted-foreground">
+                 <span>{selectedFiles.length}/{MAX_IMAGES}</span> <span>{t("photos.images")}</span>
+               </span>
             </div>
             
             <input 
@@ -437,8 +461,8 @@ export default function PublierPage() {
 
             <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-secondary/30 px-6 py-12 text-center">
               <Upload className="mb-3 h-8 w-8 text-muted-foreground" />
-              <p className="mb-1 text-sm font-medium text-foreground">Glissez vos photos ici</p>
-              <p className="mb-4 text-xs text-muted-foreground">PNG, JPG jusqu&apos;a 5MB chacune</p>
+              <p className="mb-1 text-sm font-medium text-foreground">{t("photos.dragDrop")}</p>
+              <p className="mb-4 text-xs text-muted-foreground">{t("photos.rules")}</p>
               
               <Button 
                 type="button" 
@@ -449,7 +473,7 @@ export default function PublierPage() {
                 disabled={selectedFiles.length >= MAX_IMAGES}
               >
                 <Plus className="h-4 w-4" />
-                {selectedFiles.length >= MAX_IMAGES ? "Limite atteinte" : "Choisir des fichiers"}
+                <span>{selectedFiles.length >= MAX_IMAGES ? t("photos.limit") : t("photos.chooseFiles")}</span>
               </Button>
 
               {selectedFiles.length > 0 && (
@@ -475,10 +499,10 @@ export default function PublierPage() {
           <Button type="submit" size="lg" className="w-full text-base" disabled={loading}>
             {loading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Publication en cours...
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> <span>{t("buttons.publishing")}</span>
               </>
             ) : (
-              "Publier l'annonce"
+              <span>{t("buttons.publish")}</span>
             )}
           </Button>
         </form>

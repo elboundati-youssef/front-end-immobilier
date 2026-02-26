@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
+import { useTranslations } from "next-intl" // 🌟 IMPORT NEXT-INTL
 import { Loader2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Navbar } from "@/components/navbar"
@@ -16,7 +17,14 @@ import { AdminDashboard } from "@/components/dashboard/AdminDashboard"
 type Role = "client" | "agence" | "proprietaire" | "admin"
 
 export default function DashboardPage() {
+  const t = useTranslations("DashboardPage") // 🌟 INITIALISATION TRADUCTION
   const router = useRouter()
+  const pathname = usePathname()
+  
+  // 🌟 GESTION DE LA LANGUE POUR LES REDIRECTIONS
+  const currentLocale = pathname.split("/")[1] || "fr"
+  const l = (path: string) => `/${currentLocale}${path}`
+
   const [user, setUser] = useState<any>(null)
   const [role, setRole] = useState<Role | null>(null)
   const [loading, setLoading] = useState(true)
@@ -26,7 +34,7 @@ export default function DashboardPage() {
     const token = localStorage.getItem("token")
 
     if (!storedUser || !token) {
-      router.push("/connexion")
+      router.push(l("/connexion"))
       return
     }
 
@@ -35,7 +43,7 @@ export default function DashboardPage() {
       setUser(parsedUser)
       setRole(parsedUser.role as Role)
     } catch (error) {
-      router.push("/connexion")
+      router.push(l("/connexion"))
     } finally {
       setLoading(false)
     }
@@ -52,22 +60,27 @@ export default function DashboardPage() {
   if (!role) return null
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
 
-      <div className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
+      <div className="flex-1 mx-auto w-full max-w-7xl px-4 py-8 lg:px-8">
         
         {/* Header Commun à tous les rôles */}
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="font-serif text-3xl font-bold text-foreground">Tableau de bord</h1>
-            <p className="text-muted-foreground">
-              Bienvenue, <span className="font-semibold text-foreground">{user?.name}</span>.
+            <h1 className="font-serif text-3xl font-bold text-foreground">
+              {t("title")}
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              <span>{t("welcome")} </span>
+              <span className="font-semibold text-foreground">{user?.name}</span>
             </p>
           </div>
           <div>
              <Badge variant="outline" className="text-sm px-3 py-1 uppercase bg-secondary/50">
-               Espace {role}
+               <span>{t("workspace")} </span>
+               {/* Si le rôle est "proprietaire", on peut aussi le traduire plus tard si besoin */}
+               <span>{role}</span>
              </Badge>
           </div>
         </div>
@@ -80,9 +93,9 @@ export default function DashboardPage() {
         ) : role === "admin" ? (
             <AdminDashboard />
         ) : (
-            // Sécurité : Si le rôle n'est ni client, ni agence, ni admin (ex: localStorage modifié)
+            // Sécurité : Si le rôle n'est ni client, ni agence, ni admin
             <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center text-red-600">
-                Type de compte non reconnu ou accès non autorisé.
+                {t("unauthorized")}
             </div>
         )}
 

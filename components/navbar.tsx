@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { Menu, X, Home, Search, User, Plus, Phone, Info, ChevronDown, LayoutDashboard, LogOut } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
+import { useTranslations } from "next-intl" // 🌟 IMPORT NEXT-INTL
+import { Menu, X, Home, Search, User, Plus, Phone, Info, ChevronDown, LayoutDashboard, LogOut, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-// Définition du type utilisateur
 interface UserData {
   name: string;
   email: string;
@@ -14,30 +14,42 @@ interface UserData {
   avatar?: string;
 }
 
-const navLinks = [
-  { href: "/", label: "Accueil", icon: Home },
-  { href: "/biens", label: "Biens", icon: Search },
-  { href: "/contact", label: "Contact", icon: Phone },
-  { href: "/a-propos", label: "A propos", icon: Info },
-]
-
-// URL du backend (À modifier si votre backend est hébergé ailleurs)
 const API_URL = "http://127.0.0.1:8000";
 
 export function Navbar() {
+  const t = useTranslations("Navbar") // 🌟 CHARGEMENT DES TRADUCTIONS
   const router = useRouter()
-  const [isOpen, setIsOpen] = useState(false) // Menu Mobile
-  const [userMenuOpen, setUserMenuOpen] = useState(false) // Dropdown User
+  const pathname = usePathname()
+  
+  const [isOpen, setIsOpen] = useState(false) 
+  const [userMenuOpen, setUserMenuOpen] = useState(false) 
   const [user, setUser] = useState<UserData | null>(null)
   const [isMounted, setIsMounted] = useState(false)
   
   const menuRef = useRef<HTMLDivElement>(null)
 
-  // 1. Récupérer l'utilisateur au chargement
+  // 🌟 GESTION DE LA LANGUE ACTUELLE
+  const currentLocale = pathname.split("/")[1] || "fr"
+
+  const switchLanguage = (newLocale: string) => {
+    const segments = pathname.split("/")
+    segments[1] = newLocale
+    router.push(segments.join("/"))
+    setIsOpen(false)
+  }
+
+  const l = (path: string) => `/${currentLocale}${path}`
+
+  const navLinks = [
+    { href: "/", label: t("home"), icon: Home },
+    { href: "/biens", label: t("properties"), icon: Search },
+    { href: "/contact", label: t("contact"), icon: Phone },
+    { href: "/a-propos", label: t("about"), icon: Info },
+  ]
+
   useEffect(() => {
     setIsMounted(true)
     
-    // Fonction pour écouter les mises à jour du localStorage (ex: changement photo profil)
     const loadUser = () => {
         const storedUser = localStorage.getItem("user")
         if (storedUser) {
@@ -46,12 +58,12 @@ export function Navbar() {
             } catch (e) {
                 console.error("Erreur parsing user", e)
             }
+        } else {
+            setUser(null)
         }
     }
 
     loadUser()
-
-    // Écouteur pour mettre à jour la navbar si le profil change dans une autre page
     window.addEventListener("storage", loadUser)
 
     const handleClickOutside = (event: MouseEvent) => {
@@ -67,27 +79,25 @@ export function Navbar() {
     }
   }, [])
 
-  // 2. Fonction de Déconnexion
   const handleLogout = () => {
     localStorage.removeItem("token")
     localStorage.removeItem("user")
     setUser(null)
     setIsOpen(false)
     setUserMenuOpen(false)
-    router.push("/connexion")
+    router.push(l("/connexion"))
     router.refresh()
   }
 
-  // 3. Helper pour l'URL de l'avatar
   const getAvatarUrl = (path: string | undefined) => {
     if (!path) return null;
-    if (path.startsWith('http')) return path; // Si c'est déjà un lien complet (Google, etc.)
-    return `${API_URL}${path}`; // Sinon on ajoute l'URL du backend
+    if (path.startsWith('http')) return path; 
+    return `${API_URL}${path}`; 
   }
 
   const showPublishButton = !user || (user.role === 'agence' || user.role === 'proprietaire' || user.role === 'admin');
 
-  if (!isMounted) return null
+  if (!isMounted) return <div className="h-16 border-b bg-card/95" />
 
   return (
     <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border">
@@ -95,11 +105,11 @@ export function Navbar() {
         <div className="flex h-16 items-center justify-between">
           
           {/* --- LOGO --- */}
-          <Link href="/" className="flex items-center gap-2">
+          <Link href={l("/")} className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
               <Home className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="font-serif text-xl font-bold text-foreground">ImmoMaroc</span>
+            <span className="font-serif text-xl font-bold text-foreground">ConceptImmo</span>
           </Link>
 
           {/* --- LIENS (Desktop) --- */}
@@ -107,7 +117,7 @@ export function Navbar() {
             {navLinks.map((link) => (
               <Link
                 key={link.href}
-                href={link.href}
+                href={l(link.href)}
                 className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
               >
                 {link.label}
@@ -119,16 +129,15 @@ export function Navbar() {
           <div className="hidden items-center gap-3 md:flex">
             
             {showPublishButton && (
-              <Link href={user ? "/publier" : "/connexion"}>
+              <Link href={l(user ? "/publier" : "/connexion")}>
                 <Button size="sm" className="gap-2">
                   <Plus className="h-4 w-4" />
-                  Publier
+                  <span>{t("publish")}</span>
                 </Button>
               </Link>
             )}
 
             {user ? (
-              // --- SI CONNECTÉ : MENU DÉROULANT ---
               <div className="relative" ref={menuRef}>
                 <button 
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
@@ -142,14 +151,13 @@ export function Navbar() {
                         className="h-full w-full object-cover" 
                       />
                     ) : (
-                      user.name.charAt(0).toUpperCase()
+                      <span>{user.name.charAt(0).toUpperCase()}</span>
                     )}
                   </div>
                   <span className="text-sm font-medium max-w-[100px] truncate">{user.name}</span>
                   <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${userMenuOpen ? "rotate-180" : ""}`} />
                 </button>
 
-                {/* Dropdown Content */}
                 {userMenuOpen && (
                   <div className="absolute right-0 mt-2 w-56 origin-top-right rounded-lg border border-border bg-card shadow-lg animate-in fade-in zoom-in-95 duration-200">
                     <div className="p-1">
@@ -161,21 +169,21 @@ export function Navbar() {
                       </div>
                       
                       <Link 
-                        href="/profile" 
+                        href={l("/profile")} 
                         onClick={() => setUserMenuOpen(false)}
                         className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-secondary transition-colors"
                       >
                         <User className="h-4 w-4" />
-                        Mon Profil
+                        <span>{t("profile")}</span> {/* 🌟 Traduction ici */}
                       </Link>
 
                       <Link 
-                        href="/tableau-de-bord" 
+                        href={l("/tableau-de-bord")} 
                         onClick={() => setUserMenuOpen(false)}
                         className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-secondary transition-colors"
                       >
                         <LayoutDashboard className="h-4 w-4" />
-                        Tableau de bord
+                        <span>{t("dashboard")}</span> {/* 🌟 Traduction ici */}
                       </Link>
                       
                       <button
@@ -183,20 +191,36 @@ export function Navbar() {
                         className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                       >
                         <LogOut className="h-4 w-4" />
-                        Déconnexion
+                        <span>{t("logout")}</span> {/* 🌟 Traduction ici */}
                       </button>
                     </div>
                   </div>
                 )}
               </div>
             ) : (
-              <Link href="/connexion">
+              <Link href={l("/connexion")}>
                 <Button variant="outline" size="sm" className="gap-2">
                   <User className="h-4 w-4" />
-                  Connexion
+                  <span>{t("login")}</span>
                 </Button>
               </Link>
             )}
+
+            {/* 🌟 SELECT BOX LANGUE (FIN DE LA NAVBAR) 🌟 */}
+            <div className="relative ml-2 flex items-center border-l border-border pl-4">
+              <Globe className="absolute left-6 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <select
+                value={currentLocale}
+                onChange={(e) => switchLanguage(e.target.value)}
+                className="h-9 cursor-pointer appearance-none rounded-md border border-border bg-background pl-8 pr-8 text-sm font-medium text-foreground transition-colors hover:bg-secondary focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="fr">FR</option>
+                <option value="ar">AR</option>
+                <option value="en">EN</option>
+              </select>
+              <ChevronDown className="absolute right-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+            </div>
+
           </div>
 
           {/* --- BOUTON MENU MOBILE --- */}
@@ -218,12 +242,12 @@ export function Navbar() {
                 return (
                   <Link
                     key={link.href}
-                    href={link.href}
+                    href={l(link.href)}
                     onClick={() => setIsOpen(false)}
                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                   >
                     <Icon className="h-4 w-4" />
-                    {link.label}
+                    <span>{link.label}</span>
                   </Link>
                 )
               })}
@@ -240,7 +264,7 @@ export function Navbar() {
                                 className="h-full w-full object-cover" 
                             />
                           ) : (
-                            user.name.charAt(0).toUpperCase()
+                            <span>{user.name.charAt(0).toUpperCase()}</span>
                           )}
                        </div>
                        <div className="overflow-hidden">
@@ -249,25 +273,25 @@ export function Navbar() {
                        </div>
                     </div>
 
-                    <Link href="/profile" onClick={() => setIsOpen(false)}>
+                    <Link href={l("/profile")} onClick={() => setIsOpen(false)}>
                       <Button variant="outline" className="w-full gap-2 justify-start">
                         <User className="h-4 w-4" />
-                        Mon Profil
+                        <span>{t("profile")}</span> {/* 🌟 Traduction ici */}
                       </Button>
                     </Link>
 
-                    <Link href="/tableau-de-bord" onClick={() => setIsOpen(false)}>
+                    <Link href={l("/tableau-de-bord")} onClick={() => setIsOpen(false)}>
                       <Button variant="outline" className="w-full gap-2 justify-start">
                         <LayoutDashboard className="h-4 w-4" />
-                        Tableau de bord
+                        <span>{t("dashboard")}</span> {/* 🌟 Traduction ici */}
                       </Button>
                     </Link>
 
                     {showPublishButton && (
-                      <Link href="/publier" onClick={() => setIsOpen(false)}>
+                      <Link href={l("/publier")} onClick={() => setIsOpen(false)}>
                         <Button className="w-full gap-2 justify-start">
                           <Plus className="h-4 w-4" />
-                          Publier une annonce
+                          <span>{t("publish")}</span> {/* 🌟 Traduction ici */}
                         </Button>
                       </Link>
                     )}
@@ -278,25 +302,43 @@ export function Navbar() {
                       className="w-full gap-2 justify-start text-red-500 hover:bg-red-50 hover:text-red-600"
                     >
                       <LogOut className="h-4 w-4" />
-                      Déconnexion
+                      <span>{t("logout")}</span> {/* 🌟 Traduction ici */}
                     </Button>
                   </>
                 ) : (
                   <>
-                    <Link href="/connexion" onClick={() => setIsOpen(false)}>
+                    <Link href={l("/connexion")} onClick={() => setIsOpen(false)}>
                       <Button variant="outline" className="w-full gap-2">
                         <User className="h-4 w-4" />
-                        Connexion
+                        <span>{t("login")}</span>
                       </Button>
                     </Link>
-                    <Link href="/connexion" onClick={() => setIsOpen(false)}>
+                    <Link href={l("/connexion")} onClick={() => setIsOpen(false)}>
                       <Button className="w-full gap-2">
                         <Plus className="h-4 w-4" />
-                        Publier une annonce
+                        <span>{t("publish")}</span>
                       </Button>
                     </Link>
                   </>
                 )}
+                
+                {/* 🌟 SELECT BOX LANGUE (FIN DU MENU MOBILE) 🌟 */}
+                <div className="mt-2 border-t border-border pt-4">
+                  <div className="relative flex items-center">
+                    <Globe className="absolute left-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <select
+                      value={currentLocale}
+                      onChange={(e) => switchLanguage(e.target.value)}
+                      className="h-11 w-full cursor-pointer appearance-none rounded-lg border border-border bg-background pl-10 pr-10 text-sm font-medium text-foreground transition-colors hover:bg-secondary focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
+                      <option value="fr">Français (FR)</option>
+                      <option value="ar">العربية (AR)</option>
+                      <option value="en">English (EN)</option>
+                    </select>
+                    <ChevronDown className="absolute right-4 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  </div>
+                </div>
+
               </div>
             </div>
           </div>

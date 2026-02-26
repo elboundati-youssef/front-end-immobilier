@@ -1,0 +1,802 @@
+{
+  "Navbar": {
+    "home": "Accueil",
+    "properties": "Biens",
+    "contact": "Contact",
+    "about": "À propos",
+    "publish": "Publier",
+    "login": "Connexion",
+    "profile": "Mon Profil",
+    "dashboard": "Tableau de bord",
+    "logout": "Déconnexion"
+  },
+  "HomePage": {
+    "heroBadge": "Plus de 5 000 annonces vérifiées",
+    "heroTitle": "Trouvez|le bien|de vos|rêves",
+    "heroDesc1": "Explorez des milliers d'annonces vérifiées à travers tout le Maroc.",
+    "heroDesc2": "Vente, location, appartements, villas et plus encore.",
+    "scroll": "Défiler",
+    "stats": {
+      "activeAds": "Annonces actives",
+      "users": "Utilisateurs",
+      "verifiedAds": "Annonces vérifiées",
+      "transactions": "Transactions réussies"
+    },
+    "featured": {
+      "subtitle": "Biens en vedette",
+      "title": "Nos dernières annonces",
+      "viewAll": "Voir tout",
+      "viewAllMobile": "Voir toutes les annonces",
+      "empty": "Aucune annonce trouvée."
+    },
+    "cities": {
+      "subtitle": "Explorez par ville",
+      "title": "Principales villes du Maroc",
+      "ad": "annonce",
+      "ads": "annonces"
+    },
+    "cta": {
+      "client": {
+        "title": "Prêt à trouver le logement idéal ?",
+        "desc": "Explorez nos offres exclusives et trouvez la perle rare parmi nos milliers d'annonces vérifiées.",
+        "button": "Parcourir les biens"
+      },
+      "guest": {
+        "title": "Vous avez un bien à vendre ou à louer ?",
+        "desc": "Publiez votre annonce gratuitement et touchez des milliers de clients potentiels à travers tout le Maroc.",
+        "button": "Publier une annonce"
+      }
+    }
+  },
+  "SearchBar": {
+    "city": "Ville",
+    "type": "Type",
+    "allCities": "Toutes les villes",
+    "allTypes": "Tous les types",
+    "searchBtn": "Rechercher",
+    "transactionTypes": {
+      "vente": "Acheter",
+      "location": "Louer"
+    },
+    "propertyTypes": {
+      "appartement": "Appartement",
+      "villa": "Villa",
+      "maison": "Maison",
+      "terrain": "Terrain",
+      "bureau": "Bureau"
+    }
+  },
+  "PropertiesPage": {
+    "hero": {
+      "badge": "Recherche intelligente propulsée par l'IA",
+      "title1": "Trouvez votre bien",
+      "title2": "magiquement",
+      "desc": "Décrivez simplement ce que vous cherchez — notre IA s'occupe du reste."
+    },
+    "search": {
+      "placeholder": "Ex: Villa à Tanger avec piscine moins de 15 000 DH...",
+      "button": "Chercher",
+      "try": "Essayez :"
+    },
+    "suggestions": {
+      "s1": "Appartement à Tanger moins de 5000",
+      "s2": "Villa avec piscine à Marrakech",
+      "s3": "Appartement Rabat pour étudiant"
+    },
+    "results": {
+      "searched": "Résultats de votre recherche",
+      "all": "Tous nos biens",
+      "foundSingular": "bien trouvé",
+      "foundPlural": "biens trouvés"
+    },
+    "filters": {
+      "toggle": "Filtres",
+      "refine": "Affiner la recherche",
+      "clear": "Tout effacer",
+      "city": "Ville",
+      "type": "Type",
+      "transaction": "Transaction",
+      "rooms": "Pièces min.",
+      "minPrice": "Prix min (DH)",
+      "maxPrice": "Prix max (DH)",
+      "minSurface": "Surface min (m²)",
+      "allFeminine": "Toutes",
+      "allMasculine": "Tous",
+      "unlimited": "Illimité"
+    },
+    "sort": {
+      "recent": "Plus récent",
+      "priceAsc": "Prix croissant",
+      "priceDesc": "Prix décroissant"
+    },
+    "states": {
+      "loading": "Analyse de votre demande en cours…",
+      "emptyTitle": "Aucun bien trouvé",
+      "emptyDesc": "Essayez de reformuler votre recherche ou de retirer des filtres.",
+      "emptyButton": "Voir tous les biens"
+    }
+  },
+"ContactPage": {
+    "hero": {
+      "subtitle": "Nous contacter",
+      "title": "Contactez-|nous",
+      "desc1": "Une question, une suggestion ou besoin d'aide ?",
+      "desc2": "Notre équipe est à votre disposition."
+    },
+    "info": {
+      "title": "Nos coordonnées",
+      "addressLabel": "Adresse",
+      "addressLine1": "123 Boulevard Mohammed V",
+      "addressLine2": "Casablanca, Maroc",
+      "phoneLabel": "Téléphone",
+      "phoneVal": "+212 5 22 00 00 00",
+      "emailLabel": "Email",
+      "emailVal": "contact@immomaroc.ma",
+      "hoursLabel": "Horaires",
+      "hoursLine1": "Lun - Ven : 9h – 18h",
+      "hoursLine2": "Sam : 9h – 13h",
+      "guarantee": "Réponse garantie sous 24h ouvrées"
+    },
+    "form": {
+      "successTitle": "Message envoyé !",
+      "successDesc": "Nous avons bien reçu votre message et vous répondrons dans les plus brefs délais.",
+      "successButton": "Envoyer un autre message",
+      "error": "Une erreur est survenue lors de l'envoi. Veuillez réessayer.",
+      "title": "Envoyez-nous un message",
+      "subtitle": "Tous les champs sont obligatoires.",
+      "lastName": "Nom",
+      "lastNamePlaceholder": "Votre nom",
+      "firstName": "Prénom",
+      "firstNamePlaceholder": "Votre prénom",
+      "email": "Email",
+      "emailPlaceholder": "votre@email.com",
+      "phone": "Téléphone",
+      "phonePlaceholder": "+212 6 00 00 00 00",
+      "subject": "Sujet",
+      "subjectPlaceholder": "Choisir un sujet",
+      "subj1": "Demande d'information",
+      "subj2": "Support technique",
+      "subj3": "Partenariat",
+      "subj4": "Autre",
+      "message": "Message",
+      "messagePlaceholder": "Votre message...",
+      "charSingular": "caractère",
+      "charsPlural": "caractères",
+      "sending": "Envoi en cours…",
+      "sendBtn": "Envoyer le message"
+    }
+  },
+  "AboutPage": {
+    "hero": {
+      "subtitle": "À propos",
+      "title": "La référence de l'immobilier au Maroc",
+      "desc": "ImmoMaroc est né de la volonté de moderniser le marché immobilier marocain en offrant une plateforme fiable, transparente et accessible à tous."
+    },
+    "mission": {
+      "subtitle": "Notre mission",
+      "title": "Faciliter l'accès à l'immobilier pour tous",
+      "p1": "Depuis notre création, nous avons pour objectif de démocratiser l'accès à l'information immobilière au Maroc. Nous croyons que chaque personne mérite de trouver le bien qui correspond à ses besoins et à son budget.",
+      "p2": "Notre plateforme met en relation acheteurs, locataires, propriétaires et agences immobilières dans un environnement sécurisé et transparent. Nous vérifions chaque annonce pour garantir la qualité des informations.",
+      "quote": "Trouver son chez-soi ne devrait jamais être une épreuve — c'est notre raison d'être.",
+      "author": "— Karim El Amrani, Fondateur"
+    },
+    "stats": {
+      "ads": "Annonces",
+      "users": "Utilisateurs",
+      "cities": "Villes",
+      "transactions": "Transactions"
+    },
+    "values": {
+      "subtitle": "Nos valeurs",
+      "title": "Ce qui nous anime",
+      "v1": {
+        "title": "Confiance",
+        "desc": "Toutes nos annonces sont vérifiées pour garantir la fiabilité des informations."
+      },
+      "v2": {
+        "title": "Simplicité",
+        "desc": "Une interface intuitive pour une recherche rapide et efficace de votre bien idéal."
+      },
+      "v3": {
+        "title": "Proximité",
+        "desc": "Nous connectons acheteurs, locataires et professionnels de l'immobilier."
+      },
+      "v4": {
+        "title": "Excellence",
+        "desc": "Un service premium avec un accompagnement personnalisé à chaque étape."
+      }
+    },
+    "team": {
+      "subtitle": "Notre équipe",
+      "title": "Des passionnés à votre service",
+      "roles": {
+        "ceo": "Fondateur & CEO",
+        "sales": "Directrice Commerciale",
+        "tech": "Directeur Technique",
+        "marketing": "Responsable Marketing"
+      }
+    },
+    "cta": {
+      "user": {
+        "title": "Besoin d'aide ?",
+        "desc": "Notre équipe est à votre disposition pour vous accompagner dans tous vos projets immobiliers."
+      },
+      "guest": {
+        "title": "Rejoignez ImmoMaroc",
+        "desc": "Que vous soyez acheteur, locataire ou professionnel, notre plateforme est faite pour vous."
+      },
+      "buttons": {
+        "createAccount": "Créer un compte",
+        "contact": "Nous contacter"
+      }
+    }
+  },
+  "Footer": {
+    "aboutText": "La première plateforme immobilière au Maroc. Trouvez votre bien idéal parmi des milliers d'annonces vérifiées.",
+    "nav": {
+      "title": "Navigation",
+      "home": "Accueil",
+      "allProperties": "Tous les biens",
+      "dashboard": "Mon tableau de bord",
+      "publish": "Publier une annonce",
+      "about": "À propos",
+      "contact": "Contact"
+    },
+    "types": {
+      "title": "Types de biens",
+      "apartments": "Appartements",
+      "villas": "Villas",
+      "houses": "Maisons",
+      "lands": "Terrains",
+      "offices": "Bureaux"
+    },
+    "contact": {
+      "title": "Contact",
+      "address": "123 Boulevard Mohammed V, Casablanca",
+      "phone": "+212 5 22 00 00 00",
+      "email": "contact@immomaroc.ma"
+    },
+    "copyright": "Tous droits réservés."
+  },
+  "ProfilePage": {
+    "title": "Mon Profil",
+    "editPhoto": "Modifier la photo",
+    "memberSince": "Membre depuis le",
+    "form": {
+      "title": "Informations personnelles",
+      "fullName": "Nom complet",
+      "namePlaceholder": "Votre nom",
+      "email": "Adresse email",
+      "emailPlaceholder": "exemple@email.com",
+      "phone": "Numéro de téléphone",
+      "phonePlaceholder": "06 00 00 00 00",
+      "password": "Mot de passe",
+      "passwordHelp": "Pour changer de mot de passe, contactez le support."
+    },
+    "buttons": {
+      "edit": "Modifier",
+      "save": "Enregistrer",
+      "cancel": "Annuler"
+    },
+    "alerts": {
+      "profileUpdated": "Profil mis à jour avec succès !",
+      "profileError": "Erreur lors de la mise à jour.",
+      "uploading": "Envoi de l'image en cours...",
+      "avatarUpdated": "Photo de profil mise à jour !",
+      "avatarError": "Erreur lors de l'envoi de l'image."
+    }
+  },
+  "ClientDashboard": {
+    "tabs": {
+      "favorites": "Mes Favoris",
+      "alerts": "Alertes",
+      "messages": "Messages"
+    },
+    "pagination": {
+      "page": "Page",
+      "of": "sur"
+    },
+    "favorites": {
+      "empty": "Vous n'avez pas encore de favoris.",
+      "remove": "Retirer des favoris"
+    },
+    "alerts": {
+      "empty": "Vous n'avez aucune alerte pour le moment.",
+      "delete": "Supprimer l'alerte"
+    },
+    "messages": {
+      "empty": "Vous n'avez envoyé aucun message.",
+      "myDiscussions": "Mes discussions",
+      "deletedProperty": "Annonce supprimée/inconnue",
+      "agencyOwner": "Agence / Propriétaire",
+      "with": "Avec :",
+      "ad": "Annonce :",
+      "viewAd": "Voir l'annonce",
+      "placeholder": "Écrire un message...",
+      "selectThread": "Sélectionnez une discussion pour afficher les messages.",
+      "confirmDelete": "Voulez-vous vraiment supprimer ce message ?",
+      "errorDelete": "Impossible de supprimer le message.",
+      "errorSend": "Erreur : Impossible d'envoyer."
+    }
+  },
+  "PropertyCard": {
+    "loginRequired": "Vous devez être connecté pour ajouter un favori.",
+    "addFav": "Ajouter aux favoris",
+    "removeFav": "Retirer des favoris",
+    "beds": "ch.",
+    "baths": "sdb."
+  },
+  "DashboardPage": {
+    "title": "Tableau de bord",
+    "welcome": "Bienvenue,",
+    "workspace": "Espace",
+    "unauthorized": "Type de compte non reconnu ou accès non autorisé."
+  },
+  "AuthPage": {
+    "login": {
+      "title": "Connexion",
+      "subtitle": "Connectez-vous pour accéder à votre espace."
+    },
+    "register": {
+      "title": "Créer un compte",
+      "subtitle": "Inscrivez-vous pour profiter de toutes les fonctionnalités."
+    },
+    "form": {
+      "name": "Nom complet",
+      "namePlaceholder": "Votre nom",
+      "phone": "Numéro de téléphone",
+      "phonePlaceholder": "Ex: 06 00 00 00 00",
+      "email": "Email",
+      "emailPlaceholder": "votre@email.com",
+      "password": "Mot de passe",
+      "passwordPlaceholder": "Votre mot de passe",
+      "role": "Type de compte",
+      "rememberMe": "Se souvenir de moi",
+      "forgotPassword": "Mot de passe oublié ?"
+    },
+    "roles": {
+      "client": "Client",
+      "owner": "Propriétaire",
+      "agency": "Agence"
+    },
+    "buttons": {
+      "login": "Se connecter",
+      "register": "Créer mon compte",
+      "loading": "Chargement..."
+    },
+    "switch": {
+      "toRegister": "Pas encore de compte ?",
+      "toLogin": "Déjà inscrit ?"
+    },
+    "banner": {
+      "title": "Bienvenue sur ConceptImmo",
+      "desc": "La plateforme de référence pour l'immobilier au Maroc. Trouvez, publiez et gérez vos biens en toute simplicité."
+    },
+    "errors": {
+      "default": "Une erreur est survenue."
+    }
+  },
+  "AgencyDashboard": {
+    "pagination": {
+      "page": "Page",
+      "of": "sur"
+    },
+    "sidebar": {
+      "title": "Espace Agence",
+      "ads": "Mes annonces",
+      "messages": "Mes Messages",
+      "favorites": "Mes Favoris",
+      "activities": "Activités",
+      "performance": "Performances",
+      "stats": "Mes Statistiques"
+    },
+    "quickStats": {
+      "ads": "Annonces",
+      "contacts": "Contacts",
+      "likes": "J'aimes reçus",
+      "views": "Vues"
+    },
+    "adsTab": {
+      "title": "Vos propres annonces",
+      "publish": "Publier",
+      "empty": "Aucune annonce.",
+      "views": "vues",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "confirmDelete": "Voulez-vous vraiment supprimer cette annonce ?",
+      "errorDelete": "Impossible de supprimer."
+    },
+    "favoritesTab": {
+      "empty": "Aucun favori."
+    },
+    "notificationsTab": {
+      "title": "Activité sur vos annonces",
+      "empty": "Personne n'a encore ajouté vos biens en favoris.",
+      "addedToFav": "a ajouté votre annonce à ses favoris."
+    },
+    "messagesTab": {
+      "conversations": "Conversations",
+      "placeholder": "Écrire un message...",
+      "empty": "Sélectionnez une conversation pour afficher les messages.",
+      "confirmDelete": "Voulez-vous vraiment supprimer ce message ?",
+      "errorDelete": "Impossible de supprimer le message.",
+      "errorSend": "Erreur lors de l'envoi.",
+      "ad": "Annonce :",
+      "discussionOwner": "Discussion avec l'annonceur",
+      "aboutAd": "Concernant :"
+    },
+    "statsTab": {
+      "contactRate": "Taux de Contact",
+      "contactRateSub": "Vues → Messages",
+      "avgViews": "Moyenne Vues",
+      "avgViewsSub": "Vues / Annonce",
+      "online": "Biens en ligne",
+      "onlineSub": "Publiés",
+      "pending": "En Modération",
+      "pendingSub": "En attente",
+      "topAdsTitle": "Vos annonces les plus vues",
+      "emptyTopAds": "Aucune annonce.",
+      "viewSingular": "vue",
+      "viewPlural": "vues",
+      "portfolioTitle": "Répartition du portefeuille",
+      "forSale": "Biens en Vente",
+      "forRent": "Biens en Location",
+      "sale": "Vente",
+      "rent": "Location"
+    },
+    "status": {
+      "publié": "Publié",
+      "en attente": "En attente",
+      "rejeté": "Rejeté"
+    }
+  },
+  "PropertyDetail": {
+    "breadcrumb": {
+      "home": "Accueil",
+      "properties": "Biens"
+    },
+    "notFound": {
+      "title": "Bien introuvable",
+      "btn": "Retour aux annonces"
+    },
+    "actions": {
+      "addFav": "Ajouter aux favoris",
+      "removeFav": "Retirer des favoris",
+      "report": "Signaler"
+    },
+    "specs": {
+      "surface": "Surface",
+      "rooms": "Pièces",
+      "bedrooms": "Chambres",
+      "bathrooms": "SdB"
+    },
+    "sections": {
+      "desc": "Description",
+      "equipments": "Équipements",
+      "location": "Emplacement"
+    },
+    "stats": {
+      "viewsSingular": "vue",
+      "viewsPlural": "vues",
+      "publishedOn": "Publiée le"
+    },
+    "date": {
+      "recent": "Récemment"
+    },
+    "sidebar": {
+      "agencyOwner": "Agence / Particulier",
+      "verified": "Vérifié",
+      "call": "Appeler",
+      "openChat": "Envoyer un message",
+      "closeChat": "Fermer la discussion"
+    },
+    "chat": {
+      "emailReply": "Réponse par email",
+      "welcomeMsg": "Bonjour ! Vous avez une question sur ce bien ? Laissez votre message ici.",
+      "placeholder": "Écrivez votre message..."
+    },
+    "report": {
+      "title": "Signaler cette annonce",
+      "success": "Signalement envoyé !",
+      "placeholder": "Indiquez la raison...",
+      "cancel": "Annuler",
+      "submit": "Envoyer"
+    },
+    "similar": {
+      "title": "Biens similaires"
+    },
+    "alerts": {
+      "loginRequired": "Vous devez être connecté pour ajouter des favoris. Voulez-vous vous connecter ?",
+      "errorSend": "Erreur lors de l'envoi.",
+      "confirmDeleteMsg": "Voulez-vous vraiment supprimer ce message ?",
+      "errorDeleteMsg": "Impossible de supprimer le message.",
+      "loginToReport": "Vous devez être connecté pour signaler une annonce. Voulez-vous vous connecter ?",
+      "errorReport": "Erreur lors de l'envoi du signalement."
+    }
+  },
+  "PublishPage": {
+    "title": "Publier une annonce",
+    "subtitle": "Remplissez les informations ci-dessous pour publier votre bien immobilier.",
+    "sections": {
+      "general": "Informations générales",
+      "details": "Détails du bien",
+      "location": "Localisation",
+      "equipments": "Équipements",
+      "photos": "Photos"
+    },
+    "fields": {
+      "title": "Titre de l'annonce",
+      "transaction": "Type de transaction",
+      "propertyType": "Type de bien",
+      "desc": "Description",
+      "price": "Prix (DH)",
+      "surface": "Surface (m²)",
+      "rooms": "Nombre de pièces",
+      "bedrooms": "Chambres",
+      "bathrooms": "Salles de bain",
+      "city": "Ville",
+      "address": "Adresse complète"
+    },
+    "placeholders": {
+      "title": "Ex: Appartement moderne au centre-ville",
+      "desc": "Décrivez votre bien en détail...",
+      "address": "Ex: Quartier Malabata, Rue 2"
+    },
+    "select": {
+      "choose": "Choisir",
+      "chooseCity": "Choisir une ville"
+    },
+    "map": {
+      "title": "Placer sur la carte (Optionnel)",
+      "desc": "Cliquez sur la carte pour définir l'emplacement exact du bien. Cela aidera les clients à mieux se projeter.",
+      "saved": "Emplacement enregistré",
+      "clear": "Effacer"
+    },
+    "equipments": {
+      "parking": "Parking",
+      "pool": "Piscine",
+      "garden": "Jardin",
+      "elevator": "Ascenseur",
+      "ac": "Climatisation",
+      "security": "Sécurité 24h",
+      "terrace": "Terrasse",
+      "garage": "Garage",
+      "fiber": "Fibre optique",
+      "smartHome": "Domotique",
+      "seaView": "Vue mer",
+      "schools": "Proche écoles",
+      "furnished": "Meublé"
+    },
+    "photos": {
+      "images": "images",
+      "dragDrop": "Glissez vos photos ici",
+      "rules": "PNG, JPG jusqu'à 5MB chacune",
+      "chooseFiles": "Choisir des fichiers",
+      "limit": "Limite atteinte"
+    },
+    "buttons": {
+      "publish": "Publier l'annonce",
+      "publishing": "Publication en cours..."
+    },
+    "success": {
+      "title": "Annonce soumise",
+      "desc": "Votre annonce a été soumise avec succès. Elle sera publiée après vérification par notre équipe.",
+      "btnNew": "Publier une autre annonce",
+      "btnDash": "Mon tableau de bord"
+    },
+    "alerts": {
+      "limitReached": "Vous avez déjà atteint la limite de 5 images.",
+      "partialAdd": "Seules {num} images ont été ajoutées (limite de 5 atteinte).",
+      "publishError": "Erreur lors de la publication."
+    }
+  },
+  "EditPage": {
+    "title": "Modifier l'annonce",
+    "subtitle": "Mettez à jour les informations de votre bien.",
+    "sections": {
+      "general": "Informations générales",
+      "details": "Détails",
+      "location": "Localisation",
+      "equipments": "Équipements",
+      "photos": "Photos"
+    },
+    "fields": {
+      "title": "Titre",
+      "transaction": "Transaction",
+      "propertyType": "Type de bien",
+      "desc": "Description",
+      "price": "Prix (DH)",
+      "surface": "Surface (m²)",
+      "rooms": "Pièces",
+      "bedrooms": "Chambres",
+      "bathrooms": "Salles de bain",
+      "city": "Ville",
+      "address": "Adresse"
+    },
+    "select": {
+      "choose": "Choisir",
+      "chooseCity": "Choisir une ville"
+    },
+    "map": {
+      "title": "Emplacement sur la carte (Optionnel)",
+      "desc": "Cliquez sur la carte pour modifier l'emplacement exact du bien.",
+      "saved": "Emplacement enregistré",
+      "clear": "Effacer"
+    },
+    "equipments": {
+      "parking": "Parking",
+      "pool": "Piscine",
+      "garden": "Jardin",
+      "elevator": "Ascenseur",
+      "ac": "Climatisation",
+      "security": "Sécurité 24h",
+      "terrace": "Terrasse",
+      "garage": "Garage",
+      "fiber": "Fibre optique",
+      "smartHome": "Domotique",
+      "seaView": "Vue mer",
+      "schools": "Proche écoles",
+      "furnished": "Meublé"
+    },
+    "photos": {
+      "warning": "Si vous ajoutez de nouvelles photos ci-dessous, elles <strong>remplaceront</strong> toutes les photos actuelles.",
+      "current": "Photos actuelles :",
+      "dragDrop": "Glissez vos nouvelles photos",
+      "chooseFiles": "Sélectionner nouvelles photos",
+      "limit": "Limite atteinte"
+    },
+    "buttons": {
+      "back": "Retour",
+      "cancel": "Annuler",
+      "save": "Sauvegarder les modifications",
+      "saving": "Enregistrement..."
+    },
+    "alerts": {
+      "loadError": "Impossible de charger les informations du bien.",
+      "limitReached": "Limite de 5 nouvelles images atteinte.",
+      "partialAdd": "Seulement {num} images ajoutées.",
+      "updateError": "Erreur lors de la modification."
+    }
+  },
+  "AdminDashboard": {
+    "pagination": {
+      "page": "Page",
+      "of": "sur"
+    },
+    "sidebar": {
+      "adminTitle": "Administration",
+      "personalTitle": "Espace Personnel",
+      "users": "Utilisateurs",
+      "siteAds": "Annonces du site",
+      "reports": "Signalements",
+      "globalStats": "Stats Globales",
+      "siteContacts": "Contacts Site",
+      "myAds": "Mes Annonces",
+      "myMessages": "Mes Messages",
+      "myStats": "Mes Statistiques",
+      "activities": "Activités",
+      "favorites": "Mes Favoris"
+    },
+    "quickStats": {
+      "users": "Utilisateurs",
+      "ads": "Total Annonces",
+      "pending": "À valider",
+      "reports": "Signalements",
+      "contacts": "Contacts Site"
+    },
+    "usersTab": {
+      "name": "Nom",
+      "email": "Email",
+      "role": "Rôle",
+      "actions": "Actions",
+      "empty": "Aucun utilisateur."
+    },
+    "adsTab": {
+      "empty": "Aucune annonce.",
+      "by": "Par:",
+      "unknown": "Inconnu",
+      "views": "vues",
+      "validate": "Valider",
+      "delete": "Supprimer"
+    },
+    "myAdsTab": {
+      "title": "Vos propres annonces",
+      "publish": "Publier",
+      "empty": "Vous n'avez publié aucune annonce.",
+      "views": "vues",
+      "edit": "Modifier",
+      "delete": "Supprimer"
+    },
+    "statsTab": {
+      "globalViews": "Vues Globales",
+      "onAllSite": "sur tout le site",
+      "activeAds": "Annonces Actives",
+      "online": "en ligne",
+      "users": "Utilisateurs",
+      "registered": "inscrits",
+      "sentMessages": "Messages envoyés",
+      "viaForms": "via les formulaires",
+      "memberTypology": "Typologie des membres",
+      "clients": "Clients (Chercheurs)",
+      "agencies": "Agences Immobilières",
+      "owners": "Propriétaires Particuliers",
+      "totalReports": "Total Signalements",
+      "globalMarket": "Répartition globale du marché",
+      "forSale": "Biens en Vente",
+      "forRent": "Biens en Location",
+      "sale": "Vente",
+      "rent": "Location"
+    },
+    "myStatsTab": {
+      "contactRate": "Taux de Contact",
+      "viewsToContacts": "Vues → Contacts",
+      "avgViews": "Moyenne Vues",
+      "viewsPerAd": "Vues / Annonce",
+      "onlineAds": "Biens en ligne",
+      "published": "Publiés",
+      "pendingAds": "En Modération",
+      "pending": "En attente",
+      "topAdsTitle": "Vos annonces les plus vues",
+      "emptyTopAds": "Aucune annonce.",
+      "viewSingular": "vue",
+      "viewsPlural": "vues",
+      "portfolioTitle": "Répartition de votre portefeuille"
+    },
+    "contactsTab": {
+      "empty": "Aucun message de contact au site.",
+      "deleteTitle": "Supprimer ce message",
+      "subject": "Sujet :"
+    },
+    "reportsTab": {
+      "empty": "Aucun signalement en attente.",
+      "ad": "Annonce :",
+      "deletedAd": "Annonce supprimée",
+      "reportedBy": "Signalé par",
+      "deleteAd": "Supprimer l'annonce",
+      "ignore": "Ignorer le signalement"
+    },
+    "favoritesTab": {
+      "empty": "Aucun favori."
+    },
+    "notificationsTab": {
+      "title": "Activité sur vos annonces",
+      "empty": "Personne n'a encore ajouté vos biens en favoris.",
+      "addedToFav": "a ajouté votre annonce à ses favoris."
+    },
+    "messagesTab": {
+      "conversations": "Conversations Personnelles",
+      "empty": "Sélectionnez une discussion.",
+      "ad": "Annonce :",
+      "discussionOwner": "Discussion avec l'annonceur",
+      "about": "Concernant :",
+      "placeholder": "Écrire un message..."
+    },
+    "alerts": {
+      "errorValidate": "Erreur lors de la validation.",
+      "confirmDeleteSiteProp": "Supprimer définitivement cette annonce ?",
+      "errorDelete": "Erreur suppression.",
+      "confirmDeleteContact": "Voulez-vous vraiment supprimer ce message ?",
+      "confirmDeleteReport": "Voulez-vous supprimer ce signalement ?",
+      "confirmDeleteMyProp": "Supprimer définitivement votre annonce ?",
+      "confirmDeleteMsg": "Voulez-vous vraiment supprimer ce message ?",
+      "errorSend": "Erreur lors de l'envoi."
+    },
+    "status": {
+      "publié": "Publié",
+      "en attente": "En attente",
+      "rejeté": "Rejeté"
+    }
+  },
+ "Chatbot": {
+    "title": "Assistant IA",
+    "online": "En ligne",
+    "initialMessage": "Bonjour ! 👋 Je suis l'assistant intelligent de Conceptify Immobilier. Comment puis-je vous aider aujourd'hui ?",
+    "actions": {
+      "find": "Je cherche un bien 🔍",
+      "publish": "Publier une annonce 📢",
+      "contact": "Être recontacté 📞"
+    },
+    "placeholder": "Écrivez votre message...",
+    "error": "Désolé, je rencontre des difficultés techniques pour me connecter au serveur. Veuillez réessayer plus tard. ⚙️"
+  }
+}

@@ -3,9 +3,11 @@
 import { useState, useRef, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { useTranslations } from "next-intl" // 🌟 IMPORT NEXT-INTL
 import { MessageSquare, X, Send, Bot, User, Loader2, Sparkles, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import api from "@/services/api" // N'oublie pas cet import essentiel !
+import api from "@/services/api"
 
 // Types pour structurer nos messages
 type MessageType = {
@@ -19,20 +21,29 @@ type MessageType = {
 const API_URL = "http://127.0.0.1:8000";
 
 export function ChatbotWidget() {
+  const t = useTranslations("Chatbot") // 🌟 INITIALISATION TRADUCTION
+  const pathname = usePathname()
+  const currentLocale = pathname.split("/")[1] || "fr"
+  const l = (path: string) => `/${currentLocale}${path}`
+
   const [isOpen, setIsOpen] = useState(false)
   const [inputText, setInputText] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // Message de bienvenue initial
-  const [messages, setMessages] = useState<MessageType[]>([
-    {
-      id: "1",
-      sender: "bot",
-      text: "Bonjour ! 👋 Je suis l'assistant intelligent de Conceptify Immobilier. Comment puis-je vous aider aujourd'hui ?",
-      quickActions: ["🔍 Je cherche un bien", "📢 Publier une annonce", "📞 Être recontacté"]
-    }
-  ])
+  const [messages, setMessages] = useState<MessageType[]>([])
+
+  // 🌟 RECHARGE LES MESSAGES QUAND LA LANGUE CHANGE (t) 🌟
+  useEffect(() => {
+    setMessages([
+      {
+        id: "1",
+        sender: "bot",
+        text: t("initialMessage"),
+        quickActions: [t("actions.find"), t("actions.publish"), t("actions.contact")]
+      }
+    ])
+  }, [t])
 
   // Scroll automatique vers le bas à chaque nouveau message
   useEffect(() => {
@@ -56,9 +67,9 @@ export function ChatbotWidget() {
       const botResponse: MessageType = {
         id: (Date.now() + 1).toString(),
         sender: "bot",
-        text: response.data.text, // Le texte généré par le ChatbotController
-        quickActions: response.data.quickActions || [], // Les boutons suggérés
-        properties: response.data.properties || null, // Les biens trouvés (s'il y en a)
+        text: response.data.text, // Le texte généré par le ChatbotController (déjà traduit)
+        quickActions: response.data.quickActions || [], 
+        properties: response.data.properties || null, 
       }
 
       setMessages(prev => [...prev, botResponse])
@@ -70,7 +81,7 @@ export function ChatbotWidget() {
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         sender: "bot",
-        text: "Désolé, je rencontre des difficultés techniques pour me connecter au serveur. Veuillez réessayer plus tard. ⚙️"
+        text: t("error")
       }])
     } finally {
       setIsLoading(false)
@@ -121,9 +132,9 @@ export function ChatbotWidget() {
               <Sparkles className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="font-semibold text-sm">Assistant IA</h3>
+              <h3 className="font-semibold text-sm">{t("title")}</h3>
               <p className="text-xs text-primary-foreground/80 flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-green-400 inline-block"></span> En ligne
+                <span className="h-2 w-2 rounded-full bg-green-400 inline-block"></span> {t("online")}
               </p>
             </div>
           </div>
@@ -163,7 +174,7 @@ export function ChatbotWidget() {
               {msg.properties && msg.properties.length > 0 && (
                 <div className="mt-3 flex max-w-[90%] gap-3 overflow-x-auto pb-2 snap-x">
                   {msg.properties.map((property) => (
-                    <Link href={`/biens/${property.id}`} key={property.id} className="min-w-[200px] shrink-0 snap-start overflow-hidden rounded-xl border border-border bg-card shadow-sm hover:border-primary transition-colors block">
+                    <Link href={l(`/biens/${property.slug || property.id}`)} key={property.id} className="min-w-[200px] shrink-0 snap-start overflow-hidden rounded-xl border border-border bg-card shadow-sm hover:border-primary transition-colors block">
                       <div className="relative h-24 w-full bg-muted">
                         <Image src={getImageUrl(property.images)} alt={property.title} fill className="object-cover" unoptimized />
                       </div>
@@ -197,7 +208,7 @@ export function ChatbotWidget() {
           <div className="flex items-center gap-2 rounded-full border border-border bg-secondary/50 px-2 py-1 focus-within:ring-1 focus-within:ring-primary focus-within:bg-card transition-all">
             <input 
               type="text"
-              placeholder="Écrivez votre message..."
+              placeholder={t("placeholder")}
               className="flex-1 bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}

@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { usePathname } from "next/navigation"
+import { useTranslations } from "next-intl" // 🌟 IMPORT NEXT-INTL
 import { Building2, Users, Shield, Target, Award, Globe, ArrowRight, Quote } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -56,28 +58,14 @@ const PARTICLES = [
   { left: 55, top: 10, delay: 2.1, dur: 11.0,w: 7, h: 4, op: 0.10 },
 ]
 
-const values = [
-  { icon: Shield, title: "Confiance",   description: "Toutes nos annonces sont vérifiées pour garantir la fiabilité des informations." },
-  { icon: Target, title: "Simplicité",  description: "Une interface intuitive pour une recherche rapide et efficace de votre bien idéal." },
-  { icon: Users,  title: "Proximité",   description: "Nous connectons acheteurs, locataires et professionnels de l'immobilier." },
-  { icon: Award,  title: "Excellence",  description: "Un service premium avec un accompagnement personnalisé à chaque étape." },
-]
-
-const team = [
-  { name: "Karim El Amrani",  role: "Fondateur & CEO",           initials: "KA" },
-  { name: "Leila Bennani",    role: "Directrice Commerciale",    initials: "LB" },
-  { name: "Omar Tazi",        role: "Directeur Technique",       initials: "OT" },
-  { name: "Nadia Fassi",      role: "Responsable Marketing",     initials: "NF" },
-]
-
-const stats = [
-  { value: "5,000+", label: "Annonces",     icon: Building2 },
-  { value: "12,000+",label: "Utilisateurs", icon: Users },
-  { value: "8",      label: "Villes",       icon: Globe },
-  { value: "3,200+", label: "Transactions", icon: Award },
-]
-
 export default function AProposPage() {
+  const t = useTranslations("AboutPage") // 🌟 INITIALISATION TRADUCTION
+  const pathname = usePathname()
+  
+  // 🌟 GESTION DE LA LANGUE ACTUELLE POUR LES LIENS
+  const currentLocale = pathname.split("/")[1] || "fr"
+  const l = (path: string) => `/${currentLocale}${path}`
+
   const [user, setUser] = useState<any>(null)
   const [heroVisible, setHeroVisible] = useState(false)
 
@@ -86,11 +74,33 @@ export default function AProposPage() {
   const { ref: teamRef,     inView: teamInView     } = useInView()
   const { ref: ctaRef,      inView: ctaInView      } = useInView()
 
+  // 🌟 Les tableaux sont maintenant dans le composant pour utiliser t()
+  const values = [
+    { icon: Shield, title: t("values.v1.title"), description: t("values.v1.desc") },
+    { icon: Target, title: t("values.v2.title"), description: t("values.v2.desc") },
+    { icon: Users,  title: t("values.v3.title"), description: t("values.v3.desc") },
+    { icon: Award,  title: t("values.v4.title"), description: t("values.v4.desc") },
+  ]
+
+  const team = [
+    { name: "Karim El Amrani",  role: t("team.roles.ceo"),       initials: "KA" },
+    { name: "Leila Bennani",    role: t("team.roles.sales"),     initials: "LB" },
+    { name: "Omar Tazi",        role: t("team.roles.tech"),      initials: "OT" },
+    { name: "Nadia Fassi",      role: t("team.roles.marketing"), initials: "NF" },
+  ]
+
+  const stats = [
+    { value: "5,000+", label: t("stats.ads"),          icon: Building2 },
+    { value: "12,000+",label: t("stats.users"),        icon: Users },
+    { value: "8",      label: t("stats.cities"),       icon: Globe },
+    { value: "3,200+", label: t("stats.transactions"), icon: Award },
+  ]
+
   useEffect(() => {
-    const t = setTimeout(() => setHeroVisible(true), 80)
+    const timer = setTimeout(() => setHeroVisible(true), 80)
     const storedUser = localStorage.getItem("user")
     if (storedUser) { try { setUser(JSON.parse(storedUser)) } catch {} }
-    return () => clearTimeout(t)
+    return () => clearTimeout(timer)
   }, [])
 
   return (
@@ -98,46 +108,26 @@ export default function AProposPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap');
         :root { --ease-expo: cubic-bezier(0.16,1,0.3,1); }
-
-        /* Reveal */
         .rv { opacity:0; transform:translateY(32px); transition:opacity .7s var(--ease-expo),transform .7s var(--ease-expo); }
         .rv.on { opacity:1; transform:none; }
-        .d1{transition-delay:80ms;} .d2{transition-delay:160ms;}
-        .d3{transition-delay:240ms;} .d4{transition-delay:320ms;}
-        .d5{transition-delay:400ms;}
-
-        /* Fade from left */
+        .d1{transition-delay:80ms;} .d2{transition-delay:160ms;} .d3{transition-delay:240ms;} .d4{transition-delay:320ms;} .d5{transition-delay:400ms;}
         .rv-left { opacity:0; transform:translateX(-40px); transition:opacity .8s var(--ease-expo),transform .8s var(--ease-expo); }
         .rv-left.on { opacity:1; transform:none; }
         .rv-right { opacity:0; transform:translateX(40px); transition:opacity .8s var(--ease-expo),transform .8s var(--ease-expo); transition-delay:120ms; }
         .rv-right.on { opacity:1; transform:none; }
-
-        /* Hero words */
         .hw { display:inline-block; opacity:0; transform:translateY(44px); transition:opacity .75s var(--ease-expo),transform .75s var(--ease-expo); }
         .hv .hw { opacity:1; transform:none; }
-
-        /* Particles */
         .pt { position:absolute; border-radius:50%; background:var(--primary); animation:ptf var(--dur,8s) ease-in-out infinite alternate; }
         @keyframes ptf { 0%{transform:translateY(0) scale(1);} 100%{transform:translateY(-28px) scale(1.25);} }
-
-        /* Shimmer line */
         @keyframes shimmer { 0%{background-position:-200% center;} 100%{background-position:200% center;} }
         .shl { height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent); background-size:200% auto; animation:shimmer 2.5s linear infinite; }
-
-        /* Stat card */
         .stat-card { transition:transform .3s var(--ease-expo),box-shadow .3s ease; cursor:default; }
         .stat-card:hover { transform:translateY(-5px) scale(1.03); box-shadow:0 16px 40px -12px rgba(0,0,0,.12); }
-
-        /* Value card */
         .val-card { transition:transform .3s var(--ease-expo),box-shadow .3s ease,border-color .3s; position:relative; overflow:hidden; }
         .val-card::before { content:''; position:absolute; inset:0; opacity:0; transition:opacity .3s; }
         .val-card:hover { transform:translateY(-4px); box-shadow:0 12px 36px -10px rgba(0,0,0,.1); }
         .val-card:hover::before { opacity:1; }
-
-        /* Quote block */
         .quote-mark { opacity:.08; position:absolute; top:16px; right:16px; pointer-events:none; }
-
-        /* CTA btn */
         .cta-btn { transition:transform .25s var(--ease-expo),box-shadow .25s; }
         .cta-btn:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.2); }
       `}</style>
@@ -163,14 +153,14 @@ export default function AProposPage() {
               className="mb-3 text-sm font-medium uppercase tracking-widest text-primary-foreground/60"
               style={{ opacity:heroVisible?1:0, transition:"opacity .6s ease .1s" }}
             >
-              À propos
+              {t("hero.subtitle")}
             </p>
             <h1
               className="mb-5 font-bold text-primary-foreground"
               style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(2.4rem,5.5vw,4rem)", lineHeight:1.1 }}
             >
               <span className="hw" style={{ transitionDelay:"200ms" }}>
-                La référence de l&apos;immobilier au Maroc
+                {t("hero.title")}
               </span>
             </h1>
             <div className="shl mx-auto my-6 w-20" />
@@ -178,7 +168,7 @@ export default function AProposPage() {
               className="mx-auto max-w-2xl text-lg leading-relaxed text-primary-foreground/80"
               style={{ opacity:heroVisible?1:0, transform:heroVisible?"none":"translateY(16px)", transition:"all .8s var(--ease-expo) .45s" }}
             >
-              ImmoMaroc est né de la volonté de moderniser le marché immobilier marocain en offrant une plateforme fiable, transparente et accessible à tous.
+              {t("hero.desc")}
             </p>
           </div>
         </section>
@@ -190,25 +180,25 @@ export default function AProposPage() {
             {/* Text */}
             <div className={`rv-left${missionInView?" on":""}`}>
               <p className="mb-2 flex items-center gap-2 text-sm font-medium uppercase tracking-widest text-primary">
-                <span className="block h-px w-6 bg-primary" /> Notre mission
+                <span className="block h-px w-6 bg-primary" /> {t("mission.subtitle")}
               </p>
               <h2 className="mb-5 font-bold text-foreground" style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(1.7rem,3.5vw,2.4rem)" }}>
-                Faciliter l&apos;accès à l&apos;immobilier pour tous
+                {t("mission.title")}
               </h2>
               <p className="mb-4 leading-relaxed text-muted-foreground">
-                Depuis notre création, nous avons pour objectif de démocratiser l&apos;accès à l&apos;information immobilière au Maroc. Nous croyons que chaque personne mérite de trouver le bien qui correspond à ses besoins et à son budget.
+                {t("mission.p1")}
               </p>
               <p className="leading-relaxed text-muted-foreground">
-                Notre plateforme met en relation acheteurs, locataires, propriétaires et agences immobilières dans un environnement sécurisé et transparent. Nous vérifions chaque annonce pour garantir la qualité des informations.
+                {t("mission.p2")}
               </p>
 
               {/* Inline quote */}
               <div className="mt-8 rounded-2xl border border-border bg-secondary/50 p-5 relative">
                 <Quote className="quote-mark h-10 w-10 text-primary" />
                 <p className="text-sm italic text-muted-foreground leading-relaxed">
-                  "Trouver son chez-soi ne devrait jamais être une épreuve — c'est notre raison d'être."
+                  &quot;{t("mission.quote")}&quot;
                 </p>
-                <p className="mt-2 text-xs font-semibold text-primary">— Karim El Amrani, Fondateur</p>
+                <p className="mt-2 text-xs font-semibold text-primary">{t("mission.author")}</p>
               </div>
             </div>
 
@@ -237,10 +227,10 @@ export default function AProposPage() {
           <div className="mx-auto max-w-7xl px-4 lg:px-8">
             <div className={`mb-12 text-center rv${valuesInView?" on":""}`}>
               <p className="mb-2 flex items-center justify-center gap-2 text-sm font-medium uppercase tracking-widest text-primary">
-                <span className="block h-px w-6 bg-primary" /> Nos valeurs <span className="block h-px w-6 bg-primary" />
+                <span className="block h-px w-6 bg-primary" /> {t("values.subtitle")} <span className="block h-px w-6 bg-primary" />
               </p>
               <h2 className="font-bold text-foreground" style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(1.8rem,4vw,2.6rem)" }}>
-                Ce qui nous anime
+                {t("values.title")}
               </h2>
             </div>
 
@@ -267,10 +257,10 @@ export default function AProposPage() {
         <section className="mx-auto max-w-7xl px-4 py-20 lg:px-8" ref={teamRef}>
           <div className={`mb-12 text-center rv${teamInView?" on":""}`}>
             <p className="mb-2 flex items-center justify-center gap-2 text-sm font-medium uppercase tracking-widest text-primary">
-              <span className="block h-px w-6 bg-primary" /> Notre équipe <span className="block h-px w-6 bg-primary" />
+              <span className="block h-px w-6 bg-primary" /> {t("team.subtitle")} <span className="block h-px w-6 bg-primary" />
             </p>
             <h2 className="font-bold text-foreground" style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(1.8rem,4vw,2.6rem)" }}>
-              Des passionnés à votre service
+              {t("team.title")}
             </h2>
           </div>
 
@@ -307,28 +297,26 @@ export default function AProposPage() {
                 className="mb-4 font-bold text-primary-foreground"
                 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(1.8rem,4vw,2.6rem)" }}
               >
-                {user ? "Besoin d'aide ?" : "Rejoignez ImmoMaroc"}
+                {user ? t("cta.user.title") : t("cta.guest.title")}
               </h2>
               <p className="mx-auto mb-10 max-w-xl text-lg text-primary-foreground/80 leading-relaxed">
-                {user
-                  ? "Notre équipe est à votre disposition pour vous accompagner dans tous vos projets immobiliers."
-                  : "Que vous soyez acheteur, locataire ou professionnel, notre plateforme est faite pour vous."}
+                {user ? t("cta.user.desc") : t("cta.guest.desc")}
               </p>
               <div className="flex flex-wrap justify-center gap-4">
                 {!user && (
-                  <Link href="/connexion">
+                  <Link href={l("/connexion")}>
                     <Button size="lg" variant="secondary" className="cta-btn gap-2 rounded-full px-7">
-                      Créer un compte <ArrowRight className="h-4 w-4" />
+                      <span>{t("cta.buttons.createAccount")}</span> <ArrowRight className="h-4 w-4" />
                     </Button>
                   </Link>
                 )}
-                <Link href="/contact">
+                <Link href={l("/contact")}>
                   <Button
                     size="lg"
                     variant="outline"
                     className="bg-[#b87355] cta-btn gap-2 rounded-full px-7 border-white/30 text-white hover:bg-white/10 hover:text-white"
                   >
-                    Nous contacter <ArrowRight className="h-4 w-4" />
+                    <span>{t("cta.buttons.contact")}</span> <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
               </div>
