@@ -29,6 +29,10 @@
       "viewAllMobile": "View all listings",
       "empty": "No listings found."
     },
+    "mapSection": {
+      "title": "Explore on the map",
+      "subtitle": "Find the perfect property in your favorite area"
+    },
     "cities": {
       "subtitle": "Explore by city",
       "title": "Top cities in Morocco",

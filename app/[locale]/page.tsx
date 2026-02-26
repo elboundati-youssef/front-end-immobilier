@@ -4,8 +4,8 @@ import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useTranslations } from "next-intl" // 🌟 IMPORT NEXT-INTL
-import { ArrowRight, Building2, Users, Shield, TrendingUp, Loader2, MapPin, Sparkles } from "lucide-react"
+import { useTranslations } from "next-intl" 
+import { ArrowRight, Building2, Users, Shield, TrendingUp, Loader2, MapPin, Sparkles, Map } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
@@ -13,8 +13,19 @@ import { PropertyCard } from "@/components/property-card"
 import { SearchBar } from "@/components/search-bar"
 import { cities } from "@/lib/data"
 import api from "@/services/api"
+import dynamic from "next/dynamic"; // 🌟 L'import de dynamic
 
 const API_URL = "http://127.0.0.1:8000"
+
+// 🌟 IMPORT DYNAMIQUE DE LA CARTE SANS SSR
+const MapSearchWithNoSSR = dynamic(() => import('@/components/MapSearch'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-full w-full bg-secondary animate-pulse rounded-2xl flex items-center justify-center border border-border">
+      <p className="text-muted-foreground">Chargement de la carte...</p>
+    </div>
+  )
+})
 
 /* ─── Hook: intersection observer générique ─── */
 function useInView(threshold = 0.15) {
@@ -97,10 +108,9 @@ function Particles() {
 }
 
 export default function HomePage() {
-  const t = useTranslations("HomePage") // 🌟 INITIALISATION TRADUCTION
+  const t = useTranslations("HomePage") 
   const pathname = usePathname()
   
-  // Fonction pour localiser les liens dynamiquement
   const currentLocale = pathname.split("/")[1] || "fr"
   const l = (path: string) => `/${currentLocale}${path}`
 
@@ -113,10 +123,10 @@ export default function HomePage() {
 
   const { ref: statsRef, inView: statsInView } = useInView()
   const { ref: featuredRef, inView: featuredInView } = useInView()
+  const { ref: mapRef, inView: mapInView } = useInView() // 🌟 Ajout animation carte
   const { ref: citiesRef, inView: citiesInView } = useInView()
   const { ref: ctaRef, inView: ctaInView } = useInView()
 
-  // 🌟 DÉPLACEMENT DES STATS ICI POUR UTILISER t()
   const stats = [
     { icon: Building2, value: "5,000+", label: t("stats.activeAds"), delay: "0ms" },
     { icon: Users, value: "12,000+", label: t("stats.users"), delay: "100ms" },
@@ -221,7 +231,6 @@ export default function HomePage() {
           </div>
 
           <div className={`relative mx-auto max-w-7xl px-4 py-24 md:py-36 lg:px-8 w-full ${heroVisible ? "hero-visible" : ""}`}>
-            
             <div className="mx-auto mb-6 flex justify-center">
               <span
                 className="badge-shimmer inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-1.5 text-sm text-white/90"
@@ -244,7 +253,6 @@ export default function HomePage() {
                     className="hero-word"
                     style={{ transitionDelay: `${i * 120 + 200}ms`, marginRight: "0.25em" }}
                   >
-                    {/* Applique le gradient au dernier mot de la liste traduite */}
                     {i === arr.length - 1 ? <span className="gradient-text">{w}</span> : w}
                   </span>
                 ))}
@@ -316,7 +324,7 @@ export default function HomePage() {
             </div>
             <Link href={l("/biens")}>
               <Button variant="outline" className="hidden gap-2 md:flex cta-glow" style={{ borderRadius: 99 }}>
-                <span>{t("featured.viewAll")}</span> <ArrowRight className="h-4 w-4" />
+                <span>{t("featured.viewAll")}</span> <ArrowRight className="h-4 w-4 rtl:rotate-180" />
               </Button>
             </Link>
           </div>
@@ -348,13 +356,37 @@ export default function HomePage() {
               )}
             </div>
           )}
+        </section>
 
-          <div className="mt-10 text-center md:hidden">
-            <Link href={l("/biens")}>
-              <Button variant="outline" className="gap-2" style={{ borderRadius: 99 }}>
-                <span>{t("featured.viewAllMobile")}</span> <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
+        {/*  ── CARTE INTERACTIVE GLOBALE ──  */}
+        <section className="mx-auto max-w-7xl px-4 pb-20 lg:px-8" ref={mapRef}>
+          <div className={`reveal${mapInView ? " visible" : ""}`}>
+            <div className="mb-8 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Map className="h-6 w-6" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-foreground" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                  
+                  {t("mapSection.title")}
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  
+                  {t("mapSection.subtitle")}
+                </p>
+              </div>
+            </div>
+
+            {/* LE CONTAINER DE LA CARTE EST LÀ ! 👇 */}
+            <div className="h-[500px] w-full rounded-2xl overflow-hidden shadow-lg border border-border">
+              {allProperties.length > 0 ? (
+                <MapSearchWithNoSSR properties={allProperties} locale={currentLocale} />
+              ) : (
+                <div className="h-full w-full bg-secondary flex items-center justify-center text-muted-foreground">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+              )}
+            </div>
           </div>
         </section>
 
@@ -386,7 +418,7 @@ export default function HomePage() {
                         <span>{count}</span> <span>{count !== 1 ? t("cities.ads") : t("cities.ad")}</span>
                       </p>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground transition-all duration-300 group-hover:translate-x-1.5 group-hover:text-primary" />
+                    <ArrowRight className="h-4 w-4 text-muted-foreground transition-all duration-300 group-hover:translate-x-1.5 group-hover:text-primary rtl:rotate-180 rtl:group-hover:-translate-x-1.5" />
                   </Link>
                 )
               })}
@@ -412,7 +444,7 @@ export default function HomePage() {
                   </p>
                   <Link href={l("/biens")}>
                     <Button size="lg" variant="secondary" className="gap-3 rounded-full px-8 py-3 text-base font-medium">
-                      <span>{t("cta.client.button")}</span> <ArrowRight className="h-5 w-5" />
+                      <span>{t("cta.client.button")}</span> <ArrowRight className="h-5 w-5 rtl:rotate-180" />
                     </Button>
                   </Link>
                 </>
@@ -426,7 +458,7 @@ export default function HomePage() {
                   </p>
                   <Link href={l("/publier")}>
                     <Button size="lg" variant="secondary" className="gap-3 rounded-full px-8 py-3 text-base font-medium">
-                      <span>{t("cta.guest.button")}</span> <ArrowRight className="h-5 w-5" />
+                      <span>{t("cta.guest.button")}</span> <ArrowRight className="h-5 w-5 rtl:rotate-180" />
                     </Button>
                   </Link>
                 </>

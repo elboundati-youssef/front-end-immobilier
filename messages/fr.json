@@ -29,6 +29,10 @@
       "viewAllMobile": "Voir toutes les annonces",
       "empty": "Aucune annonce trouvée."
     },
+    "mapSection": {
+      "title": "Explorez sur la carte",
+      "subtitle": "Trouvez le bien idéal dans votre zone préférée"
+    },
     "cities": {
       "subtitle": "Explorez par ville",
       "title": "Principales villes du Maroc",

@@ -15,9 +15,9 @@ export default function MapViewer({ center, address }: { center: [number, number
   return (
     <MapContainer center={center} zoom={14} scrollWheelZoom={false} style={{ height: '100%', width: '100%', zIndex: 0 }}>
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+  url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&gl=MA&hl=fr"
+  attribution="&copy; Google Maps"
+/>
       <Marker position={center} icon={defaultIcon}>
         <Popup className="font-semibold">{address}</Popup>
       </Marker>

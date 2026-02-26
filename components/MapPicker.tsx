@@ -28,9 +28,9 @@ export default function MapPicker({ mapCenter, markerPosition, setMarkerPosition
   return (
     <MapContainer center={mapCenter} zoom={13} scrollWheelZoom={false} style={{ height: '100%', width: '100%', zIndex: 0 }}>
       <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+  url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&gl=MA&hl=fr"
+  attribution="&copy; Google Maps"
+/>
       <LocationMarker position={markerPosition} setPosition={setMarkerPosition} />
     </MapContainer>
   )
