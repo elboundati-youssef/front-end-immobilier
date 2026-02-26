@@ -1,22 +1,28 @@
 "use client"
 
-import { useState, useEffect } from "react" // <-- useEffect ajouté ici
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation" 
+import { useRouter, usePathname } from "next/navigation" 
+import { useTranslations } from "next-intl" // 🌟 IMPORT NEXT-INTL
 import { Home, Eye, EyeOff, Mail, Lock, Loader2, Phone, User } from "lucide-react" 
 import { Button } from "@/components/ui/button"
 
 export default function ConnexionPage() {
+  const t = useTranslations("AuthPage") // 🌟 INITIALISATION TRADUCTION
   const router = useRouter()
+  const pathname = usePathname()
+
+  // 🌟 GESTION DE LA LANGUE POUR LA REDIRECTION
+  const currentLocale = pathname.split("/")[1] || "fr"
+  const l = (path: string) => `/${currentLocale}${path}`
+
   const [showPassword, setShowPassword] = useState(false)
   const [isLogin, setIsLogin] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   
-  // Nouvel état pour empêcher le rendu du formulaire si l'utilisateur est déjà connecté
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
 
-  // État pour stocker les données du formulaire
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -25,37 +31,30 @@ export default function ConnexionPage() {
     role: "client", 
   })
 
-  // 🌟 PROTECTION DE LA ROUTE : Vérification au chargement de la page
   useEffect(() => {
     const user = localStorage.getItem('user');
     
     if (user) {
-      // Si un utilisateur est trouvé dans le localStorage, on le renvoie à l'accueil
-      router.push('/');
+      router.push(l('/'));
     } else {
-      // Sinon, on le laisse accéder à la page de connexion
       setIsCheckingAuth(false);
     }
   }, [router])
 
-  // Gestion des changements dans les inputs
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
     setError("") 
   }
 
-  // Soumission du formulaire
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError("")
 
-    // Choix de la route API selon le mode
     const endpoint = isLogin ? "/login" : "/register"
     const url = `http://127.0.0.1:8000/api${endpoint}`
 
     try {
-      // Si on se connecte, pas besoin d'envoyer le téléphone et le nom
       const dataToSend = isLogin 
         ? { email: formData.email, password: formData.password }
         : formData;
@@ -72,15 +71,13 @@ export default function ConnexionPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.message || "Une erreur est survenue.")
+        throw new Error(data.message || t("errors.default")) // 🌟 Traduction
       }
 
-      // SUCCÈS : On stocke le token et les infos user
       localStorage.setItem("token", data.token)
       localStorage.setItem("user", JSON.stringify(data.user))
 
-      // Redirection vers l'accueil après connexion
-      router.push("/") 
+      router.push(l("/")) 
       
     } catch (err: any) {
       setError(err.message)
@@ -89,8 +86,6 @@ export default function ConnexionPage() {
     }
   }
 
-  // 🌟 On n'affiche rien (ou un petit loader) tant qu'on n'a pas vérifié l'authentification
-  // Cela évite que l'utilisateur voie la page de connexion 1 seconde avant d'être redirigé
   if (isCheckingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -104,23 +99,20 @@ export default function ConnexionPage() {
       {/* Left - Form */}
       <div className="flex flex-1 flex-col justify-center px-4 py-12 md:px-8 lg:px-16">
         <div className="mx-auto w-full max-w-md">
-          <Link href="/" className="mb-8 flex items-center gap-2">
+          <Link href={l("/")} className="mb-8 flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
               <Home className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="font-serif text-xl font-bold text-foreground">ImmoMaroc</span>
+            <span className="font-serif text-xl font-bold text-foreground">ConceptImmo</span>
           </Link>
 
           <h1 className="mb-2 font-serif text-3xl font-bold text-foreground">
-            {isLogin ? "Connexion" : "Créer un compte"}
+            {isLogin ? t("login.title") : t("register.title")}
           </h1>
           <p className="mb-8 text-muted-foreground">
-            {isLogin
-              ? "Connectez-vous pour accéder à votre espace."
-              : "Inscrivez-vous pour profiter de toutes les fonctionnalités."}
+            {isLogin ? t("login.subtitle") : t("register.subtitle")}
           </p>
 
-          {/* Affichage des erreurs */}
           {error && (
             <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-500 border border-red-200">
               {error}
@@ -129,10 +121,10 @@ export default function ConnexionPage() {
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             
-            {/* Champ NOM (Inscription uniquement) */}
+            {/* Champ NOM */}
             {!isLogin && (
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Nom complet</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">{t("form.name")}</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <input
@@ -140,7 +132,7 @@ export default function ConnexionPage() {
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    placeholder="Votre nom"
+                    placeholder={t("form.namePlaceholder")}
                     required={!isLogin}
                     className="w-full rounded-lg border border-border bg-background py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   />
@@ -148,10 +140,10 @@ export default function ConnexionPage() {
               </div>
             )}
 
-            {/* Champ TÉLÉPHONE (Inscription uniquement) */}
+            {/* Champ TÉLÉPHONE */}
             {!isLogin && (
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Numéro de téléphone</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">{t("form.phone")}</label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <input
@@ -159,7 +151,7 @@ export default function ConnexionPage() {
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
-                    placeholder="Ex: 06 00 00 00 00"
+                    placeholder={t("form.phonePlaceholder")}
                     required={!isLogin}
                     className="w-full rounded-lg border border-border bg-background py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   />
@@ -167,9 +159,9 @@ export default function ConnexionPage() {
               </div>
             )}
 
-            {/* Champ EMAIL (Connexion & Inscription) */}
+            {/* Champ EMAIL */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Email</label>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">{t("form.email")}</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
@@ -177,16 +169,16 @@ export default function ConnexionPage() {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="votre@email.com"
+                  placeholder={t("form.emailPlaceholder")}
                   required
                   className="w-full rounded-lg border border-border bg-background py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
             </div>
 
-            {/* Champ MOT DE PASSE (Connexion & Inscription) */}
+            {/* Champ MOT DE PASSE */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Mot de passe</label>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">{t("form.password")}</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
@@ -194,7 +186,7 @@ export default function ConnexionPage() {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  placeholder="Votre mot de passe"
+                  placeholder={t("form.passwordPlaceholder")}
                   required
                   className="w-full rounded-lg border border-border bg-background py-3 pl-10 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
@@ -202,65 +194,62 @@ export default function ConnexionPage() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
 
-            {/* Champ RÔLE (Inscription uniquement) */}
+            {/* Champ RÔLE */}
             {!isLogin && (
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Type de compte</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">{t("form.role")}</label>
                 <select 
                   name="role"
                   value={formData.role}
                   onChange={handleChange}
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="client">Client</option>
-                  <option value="proprietaire">Propriétaire</option>
-                  <option value="agence">Agence</option>
+                  <option value="client">{t("roles.client")}</option>
+                  <option value="proprietaire">{t("roles.owner")}</option>
+                  <option value="agence">{t("roles.agency")}</option>
                 </select>
               </div>
             )}
 
-            {/* Liens supplémentaires (Connexion uniquement) */}
+            {/* Liens supplémentaires */}
             {isLogin && (
               <div className="flex items-center justify-between">
                 <label className="flex items-center gap-2 text-sm text-muted-foreground">
                   <input type="checkbox" className="rounded border-border" />
-                  Se souvenir de moi
+                  {t("form.rememberMe")}
                 </label>
                 <button type="button" className="text-sm text-primary hover:underline">
-                  Mot de passe oublié ?
+                  {t("form.forgotPassword")}
                 </button>
               </div>
             )}
 
             <Button type="submit" className="mt-2 w-full py-3" disabled={isLoading}>
               {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Chargement...
-                </>
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("buttons.loading")}</>
               ) : (
-                isLogin ? "Se connecter" : "Créer mon compte"
+                isLogin ? t("buttons.login") : t("buttons.register")
               )}
             </Button>
           </form>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            {isLogin ? "Pas encore de compte ?" : "Déjà inscrit ?"}{" "}
+            <span>{isLogin ? t("switch.toRegister") : t("switch.toLogin")} </span>
             <button
               onClick={() => {
                 setIsLogin(!isLogin)
                 setError("")
-                setFormData({ ...formData, name: "", phone: "", password: "" }) // Reset des champs
+                setFormData({ ...formData, name: "", phone: "", password: "" })
               }}
               className="font-medium text-primary hover:underline"
             >
-              {isLogin ? "Créer un compte" : "Se connecter"}
+              {isLogin ? t("buttons.register") : t("buttons.login")}
             </button>
           </p>
         </div>
@@ -273,10 +262,10 @@ export default function ConnexionPage() {
             <Home className="h-10 w-10 text-primary-foreground" />
           </div>
           <h2 className="mb-4 font-serif text-3xl font-bold text-primary-foreground">
-            Bienvenue sur ImmoMaroc
+            {t("banner.title")}
           </h2>
           <p className="max-w-sm text-lg leading-relaxed text-primary-foreground/80">
-            La plateforme de référence pour l&apos;immobilier au Maroc. Trouvez, publiez et gérez vos biens en toute simplicité.
+            {t("banner.desc")}
           </p>
         </div>
       </div>

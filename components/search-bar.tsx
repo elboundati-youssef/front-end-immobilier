@@ -1,13 +1,21 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
+import { useTranslations } from "next-intl" // 🌟 IMPORT NEXT-INTL
 import { Search, MapPin, Home, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cities, propertyTypes, transactionTypes } from "@/lib/data"
 
 export function SearchBar({ variant = "hero" }: { variant?: "hero" | "compact" }) {
+  const t = useTranslations("SearchBar") // 🌟 INITIALISATION TRADUCTION
   const router = useRouter()
+  const pathname = usePathname()
+  
+  // 🌟 GESTION DE LA LANGUE POUR LA REDIRECTION
+  const currentLocale = pathname.split("/")[1] || "fr"
+  const l = (path: string) => `/${currentLocale}${path}`
+
   const [city, setCity] = useState("")
   const [type, setType] = useState("")
   const [transaction, setTransaction] = useState("")
@@ -17,7 +25,19 @@ export function SearchBar({ variant = "hero" }: { variant?: "hero" | "compact" }
     if (city) params.set("city", city)
     if (type) params.set("type", type)
     if (transaction) params.set("transaction", transaction)
-    router.push(`/biens?${params.toString()}`)
+    
+    // Redirection avec la bonne langue
+    router.push(l(`/biens?${params.toString()}`))
+  }
+
+  // --- TRADUCTIONS DYNAMIQUES DES TYPES ---
+  // On crée un petit helper pour traduire les données statiques (qui sont en français dans lib/data.ts)
+  const getTranslatedLabel = (category: string, value: string, defaultLabel: string) => {
+    try {
+      return t(`${category}.${value}`);
+    } catch {
+      return defaultLabel; // Fallback au cas où la trad manque
+    }
   }
 
   if (variant === "compact") {
@@ -30,7 +50,7 @@ export function SearchBar({ variant = "hero" }: { variant?: "hero" | "compact" }
             onChange={(e) => setCity(e.target.value)}
             className="w-full rounded-lg border-0 bg-secondary py-2.5 pl-9 pr-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           >
-            <option value="">Ville</option>
+            <option value="">{t("city")}</option>
             {cities.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
@@ -43,15 +63,17 @@ export function SearchBar({ variant = "hero" }: { variant?: "hero" | "compact" }
             onChange={(e) => setType(e.target.value)}
             className="w-full rounded-lg border-0 bg-secondary py-2.5 pl-9 pr-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           >
-            <option value="">Type</option>
-            {propertyTypes.map((t) => (
-              <option key={t.value} value={t.value}>{t.label}</option>
+            <option value="">{t("type")}</option>
+            {propertyTypes.map((pt) => (
+              <option key={pt.value} value={pt.value}>
+                {getTranslatedLabel("propertyTypes", pt.value, pt.label)}
+              </option>
             ))}
           </select>
         </div>
         <Button onClick={handleSearch} size="sm" className="gap-2">
           <Search className="h-4 w-4" />
-          Rechercher
+          <span>{t("searchBtn")}</span>
         </Button>
       </div>
     )
@@ -60,17 +82,17 @@ export function SearchBar({ variant = "hero" }: { variant?: "hero" | "compact" }
   return (
     <div className="w-full rounded-2xl border border-border bg-card p-4 shadow-lg md:p-6">
       <div className="mb-4 flex gap-2">
-        {transactionTypes.map((t) => (
+        {transactionTypes.map((tt) => (
           <button
-            key={t.value}
-            onClick={() => setTransaction(transaction === t.value ? "" : t.value)}
+            key={tt.value}
+            onClick={() => setTransaction(transaction === tt.value ? "" : tt.value)}
             className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-              transaction === t.value
+              transaction === tt.value
                 ? "bg-primary text-primary-foreground"
                 : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
             }`}
           >
-            {t.label}
+            {getTranslatedLabel("transactionTypes", tt.value, tt.label)}
           </button>
         ))}
       </div>
@@ -83,7 +105,7 @@ export function SearchBar({ variant = "hero" }: { variant?: "hero" | "compact" }
             onChange={(e) => setCity(e.target.value)}
             className="w-full rounded-lg border border-border bg-background py-3 pl-10 pr-4 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           >
-            <option value="">Toutes les villes</option>
+            <option value="">{t("allCities")}</option>
             {cities.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
@@ -97,17 +119,20 @@ export function SearchBar({ variant = "hero" }: { variant?: "hero" | "compact" }
             onChange={(e) => setType(e.target.value)}
             className="w-full rounded-lg border border-border bg-background py-3 pl-10 pr-4 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           >
-            <option value="">Tous les types</option>
-            {propertyTypes.map((t) => (
-              <option key={t.value} value={t.value}>{t.label}</option>
+            <option value="">{t("allTypes")}</option>
+            {propertyTypes.map((pt) => (
+              <option key={pt.value} value={pt.value}>
+                {getTranslatedLabel("propertyTypes", pt.value, pt.label)}
+              </option>
             ))}
           </select>
         </div>
 
         <Button onClick={handleSearch} className="gap-2 py-3 text-sm">
           <Search className="h-4 w-4" />
-          Rechercher
-          <ArrowRight className="h-4 w-4" />
+          <span>{t("searchBtn")}</span>
+          {/* Modification de l'icône de flèche pour RTL */}
+          <ArrowRight className="h-4 w-4 rtl:rotate-180" />
         </Button>
       </div>
     </div>

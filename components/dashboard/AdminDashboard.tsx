@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { useTranslations } from "next-intl" // 🌟 IMPORT NEXT-INTL
 import { 
   Users, Building2, AlertTriangle, Clock, Settings, 
   CheckCircle2, Trash2, Loader2, ChevronLeft, 
@@ -20,7 +22,35 @@ type AdminTab = "utilisateurs" | "annonces" | "signalements" | "statistiques" | 
 const API_URL = "http://127.0.0.1:8000";
 const ITEMS_PER_PAGE = 5; 
 
+// 🌟 Modification pour accepter les traductions
+function Pagination({ currentPage, totalPages, onPageChange, textPage, textOf }: { currentPage: number; totalPages: number; onPageChange: (page: number) => void; textPage: string; textOf: string }) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="mt-6 flex items-center justify-center gap-2">
+      <Button variant="outline" size="icon" onClick={() => onPageChange(Math.max(currentPage - 1, 1))} disabled={currentPage === 1}>
+        <ChevronLeft className="h-4 w-4" />
+      </Button>
+      <span className="text-sm px-2 text-muted-foreground">
+        <span>{textPage} </span>
+        <span>{currentPage}</span>
+        <span> {textOf} </span>
+        <span>{totalPages}</span>
+      </span>
+      <Button variant="outline" size="icon" onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))} disabled={currentPage === totalPages}>
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
 export function AdminDashboard() {
+  const t = useTranslations("AdminDashboard") // 🌟 INITIALISATION TRADUCTION
+  const pathname = usePathname()
+  
+  // 🌟 GESTION DE LA LANGUE POUR LES REDIRECTIONS
+  const currentLocale = pathname.split("/")[1] || "fr"
+  const l = (path: string) => `/${currentLocale}${path}`
+
   const [adminTab, setAdminTab] = useState<AdminTab>("utilisateurs")
   
   // --- ÉTATS DES DONNÉES ---
@@ -34,7 +64,6 @@ export function AdminDashboard() {
   const [myProperties, setMyProperties] = useState<any[]>([])
   const [allMyMessages, setAllMyMessages] = useState<any[]>([])
 
-  // 🌟 NOUVEAUX ÉTATS POUR LES NOTIFICATIONS 🌟
   const [agencyNotifications, setAgencyNotifications] = useState<any[]>([])
   const [loadingNotifs, setLoadingNotifs] = useState(false)
   const [currentNotifPage, setCurrentNotifPage] = useState(1)
@@ -72,7 +101,7 @@ export function AdminDashboard() {
     fetchContacts()
     fetchMyProperties()
     fetchUnifiedMessages()
-    fetchAgencyNotifications() // <-- LIGNE AJOUTÉE
+    fetchAgencyNotifications()
   }, [])
 
   const fetchUsers = async () => {
@@ -158,44 +187,43 @@ export function AdminDashboard() {
             return 0;
         });
       });
-    } catch (err) { alert("Erreur lors de la validation") }
+    } catch (err) { alert(t("alerts.errorValidate")) }
   }
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Supprimer définitivement cette annonce ?")) return
+    if (!confirm(t("alerts.confirmDeleteSiteProp"))) return
     try {
       await api.delete(`/admin/properties/${id}`)
       setProperties(prev => prev.filter(p => p.id !== id))
       setMyProperties(prev => prev.filter(p => p.id !== id))
-    } catch (err) { alert("Erreur suppression") }
+    } catch (err) { alert(t("alerts.errorDelete")) }
   }
 
   const handleDeleteContact = async (id: number) => {
-    if (!confirm("Voulez-vous vraiment supprimer ce message ?")) return
+    if (!confirm(t("alerts.confirmDeleteContact"))) return
     try {
       await api.delete(`/admin/contacts/${id}`)
       setContacts(prev => prev.filter(c => c.id !== id))
-    } catch (err) { alert("Erreur lors de la suppression") }
+    } catch (err) { alert(t("alerts.errorDelete")) }
   }
 
   const handleDeleteReport = async (id: number) => {
-    if (!confirm("Voulez-vous supprimer ce signalement ?")) return
+    if (!confirm(t("alerts.confirmDeleteReport"))) return
     try {
         await api.delete(`/reports/${id}`)
         setReports(prev => prev.filter(r => r.id !== id))
-    } catch (err) { alert("Erreur suppression") }
+    } catch (err) { alert(t("alerts.errorDelete")) }
   }
 
   const handleDeleteMyProp = async (id: number) => {
-    if (!confirm("Supprimer définitivement votre annonce ?")) return
+    if (!confirm(t("alerts.confirmDeleteMyProp"))) return
     try {
       await api.delete(`/properties/${id}`)
       setMyProperties(prev => prev.filter(p => p.id !== id))
       setProperties(prev => prev.filter(p => p.id !== id))
-    } catch (err) { alert("Erreur suppression") }
+    } catch (err) { alert(t("alerts.errorDelete")) }
   }
 
-  // 🌟 SUPPRIMER DES FAVORIS 🌟
   const removeFavorite = async (id: number) => {
     try {
       await api.post(`/properties/${id}/favorite`)
@@ -204,7 +232,7 @@ export function AdminDashboard() {
   }
 
   const handleDeleteMyMessage = async (messageId: number) => {
-    if (!confirm("Voulez-vous vraiment supprimer ce message ?")) return;
+    if (!confirm(t("alerts.confirmDeleteMsg"))) return;
     try {
       await api.delete(`/messages/${messageId}`);
       setAllMyMessages(prev => {
@@ -213,7 +241,7 @@ export function AdminDashboard() {
         if (!threadStillExists) setSelectedThreadId(null);
         return filtered;
       });
-    } catch (err) { alert("Impossible de supprimer."); }
+    } catch (err) { alert(t("alerts.errorDelete")); }
   }
 
   const groupedConversations = allMyMessages.reduce((acc, msg) => {
@@ -226,8 +254,8 @@ export function AdminDashboard() {
       let dEmail = "";
 
       if (amIVisitor) {
-          dName = `Annonce : ${msg.property?.title || 'Bien #' + msg.property_id}`;
-          dEmail = "Discussion avec l'annonceur";
+          dName = `${t("messagesTab.ad")} ${msg.property?.title || '#' + msg.property_id}`;
+          dEmail = t("messagesTab.discussionOwner");
       } else {
           dName = (msg.name !== 'Propriétaire' && msg.name !== 'Agence') ? msg.name : 'Client';
           dEmail = msg.email;
@@ -270,7 +298,7 @@ export function AdminDashboard() {
       fetchUnifiedMessages();
       setReplyText("");
     } catch (e: any) {
-      alert("Erreur lors de l'envoi.");
+      alert(t("alerts.errorSend"));
     } finally { setSendingReply(false); }
   }
 
@@ -312,7 +340,6 @@ export function AdminDashboard() {
   const paginate = (data: any[], page: number) => data.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
   const getPages = (data: any[]) => Math.ceil(data.length / ITEMS_PER_PAGE)
 
-  // 🌟 PAGINATION DES NOTIFICATIONS 🌟
   const paginatedNotifs = agencyNotifications.slice((currentNotifPage - 1) * ITEMS_PER_PAGE, currentNotifPage * ITEMS_PER_PAGE)
   const totalNotifPages = Math.ceil(agencyNotifications.length / ITEMS_PER_PAGE)
 
@@ -327,13 +354,13 @@ export function AdminDashboard() {
   return (
     <div className="flex flex-col lg:flex-row gap-6">
       
-      {/* 🌟 STATS RAPIDES (En premier sur mobile, cachées sur desktop car gérées à droite) 🌟 */}
+      {/* 🌟 STATS RAPIDES (Mobile) 🌟 */}
       <div className="lg:hidden grid grid-cols-2 sm:grid-cols-3 gap-4 mb-2">
         {[
-          { label: "Utilisateurs", value: users.length, icon: Users, color: "" },
-          { label: "Annonces", value: properties.length, icon: Building2, color: "" },
-          { label: "À valider", value: pendingCount, icon: Clock, color: pendingCount > 0 ? "border-orange-200 bg-orange-50/50 text-orange-600" : "" }, 
-          { label: "Signalements", value: reports.length, icon: AlertTriangle, color: reports.length > 0 ? "border-red-200 bg-red-50/50 text-red-600" : "" }, 
+          { label: t("quickStats.users"), value: users.length, icon: Users, color: "" },
+          { label: t("quickStats.ads"), value: properties.length, icon: Building2, color: "" },
+          { label: t("quickStats.pending"), value: pendingCount, icon: Clock, color: pendingCount > 0 ? "border-orange-200 bg-orange-50/50 text-orange-600" : "" }, 
+          { label: t("quickStats.reports"), value: reports.length, icon: AlertTriangle, color: reports.length > 0 ? "border-red-200 bg-red-50/50 text-red-600" : "" }, 
         ].map((stat) => (
           <div key={stat.label} className={`rounded-xl border border-border bg-card p-4 shadow-sm ${stat.color}`}>
             <div className="flex items-center justify-between mb-1">
@@ -345,25 +372,27 @@ export function AdminDashboard() {
         ))}
       </div>
 
-      {/* 🌟 LAYOUT À GAUCHE : SIDEBAR DE NAVIGATION 🌟 */}
+      {/* 🌟 SIDEBAR DE NAVIGATION 🌟 */}
       <aside className="w-full lg:w-64 shrink-0">
         <div className="sticky top-20 flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-visible rounded-2xl border border-border bg-card p-3 shadow-sm custom-scrollbar">
           
-          <h3 className="hidden lg:block px-3 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Administration</h3>
+          <h3 className="hidden lg:block px-3 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+            {t("sidebar.adminTitle")}
+          </h3>
 
           {[
-            { key: "utilisateurs", label: "Utilisateurs", icon: Users },
-            { key: "annonces", label: "Annonces du site", icon: Building2 },
-            { key: "signalements", label: "Signalements", icon: AlertTriangle, count: reports.length, alert: true },
-            { key: "statistiques", label: "Stats Globales", icon: PieChart },
-            { key: "contacts", label: "Contacts Site", icon: Mail },
+            { key: "utilisateurs", label: t("sidebar.users"), icon: Users },
+            { key: "annonces", label: t("sidebar.siteAds"), icon: Building2 },
+            { key: "signalements", label: t("sidebar.reports"), icon: AlertTriangle, count: reports.length, alert: true },
+            { key: "statistiques", label: t("sidebar.globalStats"), icon: PieChart },
+            { key: "contacts", label: t("sidebar.siteContacts"), icon: Mail },
             { type: "divider" }, 
-            { type: "title", label: "Espace Personnel" }, 
-            { key: "mes_annonces", label: "Mes Annonces", icon: Home },
-            { key: "mes_messages", label: "Mes Messages", icon: MessageSquare, count: conversationList.length },
-            { key: "mes_statistiques", label: "Mes Statistiques", icon: Activity }, 
-            { key: "notifications", label: "Activités", icon: Bell, count: agencyNotifications.length },
-            { key: "favoris", label: "Mes Favoris", icon: Heart },
+            { type: "title", label: t("sidebar.personalTitle") }, 
+            { key: "mes_annonces", label: t("sidebar.myAds"), icon: Home },
+            { key: "mes_messages", label: t("sidebar.myMessages"), icon: MessageSquare, count: conversationList.length },
+            { key: "mes_statistiques", label: t("sidebar.myStats"), icon: Activity }, 
+            { key: "notifications", label: t("sidebar.activities"), icon: Bell, count: agencyNotifications.length },
+            { key: "favoris", label: t("sidebar.favorites"), icon: Heart },
           ].map((tab, idx) => {
             if (tab.type === "divider") {
               return <div key={`div-${idx}`} className="hidden lg:block h-px w-full bg-border my-2" />
@@ -387,7 +416,7 @@ export function AdminDashboard() {
               >
                 <div className="flex items-center gap-3">
                   {Icon && <Icon className={`h-4 w-4 ${isActive ? "text-primary-foreground" : "text-muted-foreground"}`} />} 
-                  {tab.label}
+                  <span>{tab.label}</span>
                 </div>
                 
                 {tab.count !== undefined && tab.count > 0 && (
@@ -409,11 +438,11 @@ export function AdminDashboard() {
         {/* --- STATISTIQUES RAPIDES (Desktop Uniquement) --- */}
         <div className="hidden lg:grid grid-cols-5 gap-4">
           {[
-            { label: "Utilisateurs", value: users.length, icon: Users, color: "" },
-            { label: "Total Annonces", value: properties.length, icon: Building2, color: "" },
-            { label: "À valider", value: pendingCount, icon: Clock, color: pendingCount > 0 ? "border-orange-200 bg-orange-50/50 text-orange-600" : "" }, 
-            { label: "Signalements", value: reports.length, icon: AlertTriangle, color: reports.length > 0 ? "border-red-200 bg-red-50/50 text-red-600" : "" }, 
-            { label: "Contacts Site", value: contacts.length, icon: Mail, color: "" },
+            { label: t("quickStats.users"), value: users.length, icon: Users, color: "" },
+            { label: t("quickStats.ads"), value: properties.length, icon: Building2, color: "" },
+            { label: t("quickStats.pending"), value: pendingCount, icon: Clock, color: pendingCount > 0 ? "border-orange-200 bg-orange-50/50 text-orange-600" : "" }, 
+            { label: t("quickStats.reports"), value: reports.length, icon: AlertTriangle, color: reports.length > 0 ? "border-red-200 bg-red-50/50 text-red-600" : "" }, 
+            { label: t("quickStats.contacts"), value: contacts.length, icon: Mail, color: "" },
           ].map((stat) => (
             <div key={stat.label} className={`rounded-xl border border-border bg-card p-4 transition-all shadow-sm ${stat.color}`}>
               <div className="flex items-center justify-between mb-2">
@@ -435,15 +464,15 @@ export function AdminDashboard() {
                           <thead className="border-b border-border bg-secondary/50">
                           <tr>
                               <th className="px-4 py-3 text-left font-medium">ID</th>
-                              <th className="px-4 py-3 text-left font-medium">Nom</th>
-                              <th className="px-4 py-3 text-left font-medium">Email</th>
-                              <th className="px-4 py-3 text-left font-medium">Rôle</th>
-                              <th className="px-4 py-3 text-right font-medium">Actions</th>
+                              <th className="px-4 py-3 text-left font-medium">{t("usersTab.name")}</th>
+                              <th className="px-4 py-3 text-left font-medium">{t("usersTab.email")}</th>
+                              <th className="px-4 py-3 text-left font-medium">{t("usersTab.role")}</th>
+                              <th className="px-4 py-3 text-right font-medium">{t("usersTab.actions")}</th>
                           </tr>
                           </thead>
                           <tbody>
                           {users.length === 0 ? (
-                              <tr><td colSpan={5} className="text-center py-8 text-muted-foreground">Aucun utilisateur.</td></tr>
+                              <tr><td colSpan={5} className="text-center py-8 text-muted-foreground">{t("usersTab.empty")}</td></tr>
                           ) : (
                               paginate(users, userPage).map((user) => (
                                   <tr key={user.id} className="border-b border-border hover:bg-muted/50">
@@ -460,13 +489,7 @@ export function AdminDashboard() {
                           </tbody>
                       </table>
                   </div>
-                  {getPages(users) > 1 && (
-                      <div className="flex items-center justify-center gap-2 p-4 border-t border-border">
-                          <Button variant="outline" size="icon" onClick={() => setUserPage(p => Math.max(p - 1, 1))} disabled={userPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
-                          <span className="text-sm px-2 text-muted-foreground">Page {userPage} sur {getPages(users)}</span>
-                          <Button variant="outline" size="icon" onClick={() => setUserPage(p => Math.min(p + 1, getPages(users)))} disabled={userPage === getPages(users)}><ChevronRight className="h-4 w-4" /></Button>
-                      </div>
-                  )}
+                  <Pagination currentPage={userPage} totalPages={getPages(users)} onPageChange={setUserPage} textPage={t("pagination.page")} textOf={t("pagination.of")} />
               </>
             )}
           </div>
@@ -477,26 +500,29 @@ export function AdminDashboard() {
           <div className="flex flex-col gap-4">
             {loadingProps ? <div className="flex justify-center py-10"><Loader2 className="animate-spin text-primary" /></div> : (
               <div className="flex flex-col gap-4">
-                  {properties.length === 0 ? <div className="text-center py-10 border border-dashed rounded-xl text-muted-foreground shadow-sm bg-card">Aucune annonce.</div> : 
+                  {properties.length === 0 ? <div className="text-center py-10 border border-dashed rounded-xl text-muted-foreground shadow-sm bg-card">{t("adsTab.empty")}</div> : 
                   paginate(properties, propPage).map((p) => (
                   <div key={p.id} className="flex flex-col sm:flex-row gap-4 rounded-xl border border-border bg-card p-4 transition-all shadow-sm hover:shadow-md group">
                       
-                      <Link href={`/biens/${p.id}`} className="relative h-48 sm:h-32 w-full sm:w-48 shrink-0 overflow-hidden rounded-lg bg-secondary block hover:opacity-90">
+                      <Link href={l(`/biens/${p.slug || p.id}`)} className="relative h-48 sm:h-32 w-full sm:w-48 shrink-0 overflow-hidden rounded-lg bg-secondary block hover:opacity-90">
                           <Image src={getImageUrl(p.images)} alt={p.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" unoptimized />
                           <Badge variant={p.status === "publié" ? "default" : "secondary"} className={`absolute top-2 left-2 shadow-sm capitalize ${p.status === 'en attente' ? 'bg-orange-500 text-white' : ''}`}>
-                            {p.status}
+                            {t(`status.${p.status}`) || p.status}
                           </Badge>
                       </Link>
                       
                       <div className="flex-1 min-w-0 flex flex-col justify-center">
-                          <Link href={`/biens/${p.id}`} className="text-lg font-semibold hover:text-primary hover:underline truncate mb-1">
+                          <Link href={l(`/biens/${p.slug || p.id}`)} className="text-lg font-semibold hover:text-primary hover:underline truncate mb-1">
                             {p.title}
                           </Link>
-                          <div className="text-sm text-muted-foreground mb-1">Par: <span className="font-medium text-foreground">{p.user?.name || 'Inconnu'}</span></div>
+                          <div className="text-sm text-muted-foreground mb-1">
+                            <span>{t("adsTab.by")} </span> 
+                            <span className="font-medium text-foreground">{p.user?.name || t("adsTab.unknown")}</span>
+                          </div>
                           <div className="text-sm text-muted-foreground flex items-center gap-3 mb-2">
                               <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {p.city}</span>
                               <span className="flex items-center gap-1 text-primary/80 font-medium">
-                                <Eye className="h-3.5 w-3.5" /> {p.views_count || 0} vues
+                                <Eye className="h-3.5 w-3.5" /> <span>{p.views_count || 0}</span> <span>{t("adsTab.views")}</span>
                               </span>
                           </div>
                           <p className="font-bold text-primary mt-auto">{formatPrice(p.price, p.transaction_type)}</p>
@@ -505,22 +531,16 @@ export function AdminDashboard() {
                       <div className="flex sm:flex-col gap-3 shrink-0 mt-2 sm:mt-0 justify-center">
                           {p.status !== 'publié' && (
                               <Button variant="outline" className="flex-1 sm:flex-none h-12 sm:h-10 text-green-600 border-green-300 hover:bg-green-50 gap-2" onClick={() => handleValidate(p.id)}>
-                                  <CheckCircle2 className="h-4 w-4" /> <span className="sm:hidden xl:inline">Valider</span>
+                                  <CheckCircle2 className="h-4 w-4" /> <span className="sm:hidden xl:inline">{t("adsTab.validate")}</span>
                               </Button>
                           )}
                           <Button variant="outline" className="flex-1 sm:flex-none h-12 sm:h-10 gap-2 text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => handleDelete(p.id)}>
-                              <Trash2 className="h-4 w-4" /> <span className="sm:hidden xl:inline">Supprimer</span>
+                              <Trash2 className="h-4 w-4" /> <span className="sm:hidden xl:inline">{t("adsTab.delete")}</span>
                           </Button>
                       </div>
                   </div>
                   ))}
-                  {getPages(properties) > 1 && (
-                      <div className="mt-4 flex justify-center gap-2">
-                          <Button variant="outline" size="icon" onClick={() => setPropPage(p => Math.max(p - 1, 1))} disabled={propPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
-                          <span className="text-sm px-2 flex items-center text-muted-foreground">{propPage} / {getPages(properties)}</span>
-                          <Button variant="outline" size="icon" onClick={() => setPropPage(p => Math.min(p + 1, getPages(properties)))} disabled={propPage === getPages(properties)}><ChevronRight className="h-4 w-4" /></Button>
-                      </div>
-                  )}
+                  <Pagination currentPage={propPage} totalPages={getPages(properties)} onPageChange={setPropPage} textPage={t("pagination.page")} textOf={t("pagination.of")} />
               </div>
             )}
           </div>
@@ -530,54 +550,48 @@ export function AdminDashboard() {
         {adminTab === "mes_annonces" && (
           <div className="flex flex-col gap-4">
             <div className="mb-2 flex justify-between items-center">
-              <h2 className="text-lg font-semibold font-serif">Vos propres annonces</h2>
-              <Link href="/publier"><Button size="sm" className="gap-2"><Plus className="h-4 w-4" /> Publier</Button></Link>
+              <h2 className="text-lg font-semibold font-serif">{t("myAdsTab.title")}</h2>
+              <Link href={l("/publier")}><Button size="sm" className="gap-2"><Plus className="h-4 w-4" /> <span>{t("myAdsTab.publish")}</span></Button></Link>
             </div>
             {loadingMyProps ? <div className="flex justify-center py-10"><Loader2 className="animate-spin text-primary" /></div> : (
               <div className="flex flex-col gap-4">
-                  {myProperties.length === 0 ? <div className="text-center py-10 border border-dashed rounded-xl text-muted-foreground shadow-sm bg-card">Vous n'avez publié aucune annonce.</div> : 
+                  {myProperties.length === 0 ? <div className="text-center py-10 border border-dashed rounded-xl text-muted-foreground shadow-sm bg-card">{t("myAdsTab.empty")}</div> : 
                   paginate(myProperties, myPropPage).map((p) => (
                   <div key={p.id} className="flex flex-col sm:flex-row gap-4 rounded-xl border border-border bg-card p-4 transition-all shadow-sm hover:shadow-md group">
                       
-                      <Link href={`/biens/${p.id}`} className="relative h-48 sm:h-32 w-full sm:w-48 shrink-0 overflow-hidden rounded-lg bg-secondary block hover:opacity-90">
+                      <Link href={l(`/biens/${p.slug || p.id}`)} className="relative h-48 sm:h-32 w-full sm:w-48 shrink-0 overflow-hidden rounded-lg bg-secondary block hover:opacity-90">
                           <Image src={getImageUrl(p.images)} alt={p.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" unoptimized />
                           <Badge variant={p.status === "publié" ? "default" : "secondary"} className={`absolute top-2 left-2 shadow-sm capitalize ${p.status === 'en attente' ? 'bg-orange-500 text-white' : ''}`}>
-                            {p.status}
+                            {t(`status.${p.status}`) || p.status}
                           </Badge>
                       </Link>
                       
                       <div className="flex-1 min-w-0 flex flex-col justify-center">
-                          <Link href={`/biens/${p.id}`} className="text-lg font-semibold hover:text-primary hover:underline truncate mb-1">
+                          <Link href={l(`/biens/${p.slug || p.id}`)} className="text-lg font-semibold hover:text-primary hover:underline truncate mb-1">
                             {p.title}
                           </Link>
                           <div className="text-sm text-muted-foreground flex items-center gap-3 mb-2">
                               <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {p.city}</span>
                               <span className="flex items-center gap-1 text-primary/80 font-medium">
-                                <Eye className="h-3.5 w-3.5" /> {p.views_count || 0} vues
+                                <Eye className="h-3.5 w-3.5" /> <span>{p.views_count || 0}</span> <span>{t("myAdsTab.views")}</span>
                               </span>
                           </div>
                           <p className="font-bold text-primary mt-auto">{formatPrice(p.price, p.transaction_type)}</p>
                       </div>
                       
                       <div className="flex sm:flex-col gap-3 shrink-0 mt-2 sm:mt-0 justify-center">
-                          <Link href={`/modifier/${p.id}`} className="flex-1 sm:flex-none">
+                          <Link href={l(`/modifier/${p.id}`)} className="flex-1 sm:flex-none">
                               <Button variant="outline" className="w-full h-12 sm:h-10 text-primary border-primary/30 hover:bg-primary/10 gap-2">
-                                <Edit className="h-4 w-4" /> <span className="sm:hidden xl:inline">Modifier</span>
+                                <Edit className="h-4 w-4" /> <span className="sm:hidden xl:inline">{t("myAdsTab.edit")}</span>
                               </Button>
                           </Link>
                           <Button variant="outline" className="flex-1 sm:flex-none h-12 sm:h-10 gap-2 text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => handleDeleteMyProp(p.id)}>
-                              <Trash2 className="h-4 w-4" /> <span className="sm:hidden xl:inline">Supprimer</span>
+                              <Trash2 className="h-4 w-4" /> <span className="sm:hidden xl:inline">{t("myAdsTab.delete")}</span>
                           </Button>
                       </div>
                   </div>
                   ))}
-                  {getPages(myProperties) > 1 && (
-                      <div className="mt-4 flex justify-center gap-2">
-                          <Button variant="outline" size="icon" onClick={() => setMyPropPage(p => Math.max(p - 1, 1))} disabled={myPropPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
-                          <span className="text-sm px-2 flex items-center text-muted-foreground">{myPropPage} / {getPages(myProperties)}</span>
-                          <Button variant="outline" size="icon" onClick={() => setMyPropPage(p => Math.min(p + 1, getPages(myProperties)))} disabled={myPropPage === getPages(myProperties)}><ChevronRight className="h-4 w-4" /></Button>
-                      </div>
-                  )}
+                  <Pagination currentPage={myPropPage} totalPages={getPages(myProperties)} onPageChange={setMyPropPage} textPage={t("pagination.page")} textOf={t("pagination.of")} />
               </div>
             )}
           </div>
@@ -586,13 +600,12 @@ export function AdminDashboard() {
         {/* 🌟 === ONGLET : STATISTIQUES GLOBALES DU SITE === 🌟 */}
         {adminTab === "statistiques" && (
           <div className="flex flex-col gap-6">
-
             <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
               {[
-                { label: "Vues Globales", value: totalSiteViews.toString(), icon: Eye, sub: "sur tout le site" },
-                { label: "Annonces Actives", value: publishedCount.toString(), icon: Building2, sub: "en ligne" },
-                { label: "Utilisateurs", value: users.length.toString(), icon: Users, sub: "inscrits" },
-                { label: "Messages envoyés", value: contacts.length.toString(), icon: MessageSquare, sub: "via les formulaires" },
+                { label: t("statsTab.globalViews"), value: totalSiteViews.toString(), icon: Eye, sub: t("statsTab.onAllSite") },
+                { label: t("statsTab.activeAds"), value: publishedCount.toString(), icon: Building2, sub: t("statsTab.online") },
+                { label: t("statsTab.users"), value: users.length.toString(), icon: Users, sub: t("statsTab.registered") },
+                { label: t("statsTab.sentMessages"), value: contacts.length.toString(), icon: MessageSquare, sub: t("statsTab.viaForms") },
               ].map((kpi) => (
                 <div key={kpi.label} className="rounded-xl border border-border bg-card p-5 shadow-sm">
                   <div className="flex items-center justify-between mb-3">
@@ -608,14 +621,14 @@ export function AdminDashboard() {
             <div className="grid gap-6 md:grid-cols-2">
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                 <h3 className="mb-5 font-semibold text-foreground flex items-center gap-2">
-                  <Users className="h-4 w-4 text-primary" /> Typologie des membres
+                  <Users className="h-4 w-4 text-primary" /> {t("statsTab.memberTypology")}
                 </h3>
                 <div className="flex flex-col gap-0">
                   {[
-                    { label: "Clients (Chercheurs)", value: clientsCount.toString() },
-                    { label: "Agences Immobilières", value: agencesCount.toString() },
-                    { label: "Propriétaires Particuliers", value: propsCount.toString() },
-                    { label: "Total Signalements", value: reports.length.toString() },
+                    { label: t("statsTab.clients"), value: clientsCount.toString() },
+                    { label: t("statsTab.agencies"), value: agencesCount.toString() },
+                    { label: t("statsTab.owners"), value: propsCount.toString() },
+                    { label: t("statsTab.totalReports"), value: reports.length.toString() },
                   ].map((stat) => (
                     <div key={stat.label} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
                       <span className="text-sm text-muted-foreground">{stat.label}</span>
@@ -627,15 +640,15 @@ export function AdminDashboard() {
 
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                 <h3 className="mb-5 font-semibold text-foreground flex items-center gap-2">
-                  <PieChart className="h-4 w-4 text-primary" /> Répartition globale du marché
+                  <PieChart className="h-4 w-4 text-primary" /> {t("statsTab.globalMarket")}
                 </h3>
                 <div className="space-y-4">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Biens en Vente</span>
+                    <span className="text-muted-foreground">{t("statsTab.forSale")}</span>
                     <span className="font-bold">{totalVentes}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Biens en Location</span>
+                    <span className="text-muted-foreground">{t("statsTab.forRent")}</span>
                     <span className="font-bold">{totalLocations}</span>
                   </div>
                   
@@ -644,8 +657,8 @@ export function AdminDashboard() {
                     <div style={{width: `${properties.length ? (totalLocations/properties.length)*100 : 0}%`}} className="bg-blue-400 h-full transition-all duration-500"/>
                   </div>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
-                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary block"></span> Vente</span>
-                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400 block"></span> Location</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary block"></span> {t("statsTab.sale")}</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400 block"></span> {t("statsTab.rent")}</span>
                   </div>
                 </div>
               </div>
@@ -656,13 +669,12 @@ export function AdminDashboard() {
         {/* 🌟 === ONGLET : MES STATISTIQUES PERSONNELLES === 🌟 */}
         {adminTab === "mes_statistiques" && (
           <div className="flex flex-col gap-6">
-
             <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
               {[
-                { label: "Taux de Contact", value: `${myConversionRate}%`, icon: TrendingUp, sub: "Vues → Contacts" },
-                { label: "Moyenne Vues", value: myAvgViews, icon: Activity, sub: "Vues / Annonce" },
-                { label: "Biens en ligne", value: myPublishedCount.toString(), icon: CheckCircle2, sub: "Publiés" },
-                { label: "En Modération", value: myPendingCount.toString(), icon: Clock, sub: "En attente" },
+                { label: t("myStatsTab.contactRate"), value: `${myConversionRate}%`, icon: TrendingUp, sub: t("myStatsTab.viewsToContacts") },
+                { label: t("myStatsTab.avgViews"), value: myAvgViews, icon: Activity, sub: t("myStatsTab.viewsPerAd") },
+                { label: t("myStatsTab.onlineAds"), value: myPublishedCount.toString(), icon: CheckCircle2, sub: t("myStatsTab.published") },
+                { label: t("myStatsTab.pendingAds"), value: myPendingCount.toString(), icon: Clock, sub: t("myStatsTab.pending") },
               ].map((kpi) => (
                 <div key={kpi.label} className="rounded-xl border border-border bg-card p-5 shadow-sm">
                   <div className="flex items-center justify-between mb-3">
@@ -678,12 +690,12 @@ export function AdminDashboard() {
             <div className="grid gap-6 md:grid-cols-2">
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                 <h3 className="mb-5 font-semibold text-foreground flex items-center gap-2">
-                  <Eye className="h-4 w-4 text-primary" /> Vos annonces les plus vues
+                  <Eye className="h-4 w-4 text-primary" /> {t("myStatsTab.topAdsTitle")}
                 </h3>
                 {loadingMyProps ? (
                   <div className="flex justify-center py-6"><Loader2 className="animate-spin text-primary" /></div>
                 ) : myTopProperties.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">Aucune annonce.</p>
+                  <p className="text-sm text-muted-foreground text-center py-6">{t("myStatsTab.emptyTopAds")}</p>
                 ) : (
                   <div className="flex flex-col gap-4">
                     {myTopProperties.map((p) => {
@@ -697,7 +709,7 @@ export function AdminDashboard() {
                             </div>
                           </div>
                           <span className="w-16 text-right text-sm font-semibold text-muted-foreground shrink-0">
-                            {p.views_count || 0} vue{(p.views_count || 0) !== 1 ? 's' : ''}
+                            <span>{p.views_count || 0}</span> <span>{(p.views_count || 0) !== 1 ? t("myStatsTab.viewsPlural") : t("myStatsTab.viewSingular")}</span>
                           </span>
                         </div>
                       )
@@ -708,15 +720,15 @@ export function AdminDashboard() {
 
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                 <h3 className="mb-5 font-semibold text-foreground flex items-center gap-2">
-                  <PieChart className="h-4 w-4 text-primary" /> Répartition de votre portefeuille
+                  <PieChart className="h-4 w-4 text-primary" /> {t("myStatsTab.portfolioTitle")}
                 </h3>
                 <div className="space-y-4">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Biens en Vente</span>
+                    <span className="text-muted-foreground">{t("statsTab.forSale")}</span>
                     <span className="font-bold">{myVentesCount}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Biens en Location</span>
+                    <span className="text-muted-foreground">{t("statsTab.forRent")}</span>
                     <span className="font-bold">{myLocationsCount}</span>
                   </div>
                   
@@ -725,8 +737,8 @@ export function AdminDashboard() {
                     <div style={{width: `${myProperties.length ? (myLocationsCount/myProperties.length)*100 : 0}%`}} className="bg-blue-400 h-full transition-all duration-500"/>
                   </div>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
-                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary block"></span> Vente</span>
-                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400 block"></span> Location</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary block"></span> {t("statsTab.sale")}</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400 block"></span> {t("statsTab.rent")}</span>
                   </div>
                 </div>
               </div>
@@ -734,12 +746,12 @@ export function AdminDashboard() {
           </div>
         )}
 
-        {/* 🌟 === ONGLET : MES MESSAGES (CHAT FIXE POUR MOBILE) === 🌟 */}
+        {/* 🌟 === ONGLET : MES MESSAGES === 🌟 */}
         {adminTab === "mes_messages" && (
-          <div className="flex flex-col md:flex-row h-[75vh] min-h-[500px] border border-border rounded-xl bg-card overflow-hidden shadow-sm relative">
+          <div className="flex flex-col md:flex-row gap-0 md:gap-4 h-[calc(100vh-200px)] min-h-[500px] border border-border rounded-xl bg-card overflow-hidden shadow-sm relative">
             
             <div className={`w-full md:w-1/3 border-r border-border flex flex-col bg-card absolute md:relative inset-0 z-20 md:z-0 ${selectedThreadId ? 'hidden md:flex' : 'flex'}`}>
-              <div className="p-4 border-b border-border bg-secondary/30 font-semibold shrink-0">Conversations Personnelles</div>
+              <div className="p-4 border-b border-border bg-secondary/30 font-semibold shrink-0">{t("messagesTab.conversations")}</div>
               <div className="overflow-y-auto flex-1 p-2 space-y-1">
                 {conversationList.map((contact: any) => (
                   <button key={contact.threadId} onClick={() => setSelectedThreadId(contact.threadId)}
@@ -792,7 +804,7 @@ export function AdminDashboard() {
                         <div key={`${msg.id}-${index}`} className={`flex flex-col group max-w-[85%] md:max-w-[75%] ${isMe ? 'self-end items-end' : 'self-start items-start'}`}>
                           {!isMe && msg.property && amIVisitor === false && (
                             <span className="text-[10px] text-muted-foreground mb-1 ml-1 flex items-center gap-1">
-                              <Building2 className="h-3 w-3" /> Concernant : {msg.property.title}
+                              <Building2 className="h-3 w-3" /> <span>{t("messagesTab.about")} </span> <span>{msg.property.title}</span>
                             </span>
                           )}
                           <div className="flex items-center gap-2">
@@ -811,7 +823,7 @@ export function AdminDashboard() {
                             )}
                           </div>
                           <span className="text-[10px] text-muted-foreground mt-1 mx-1">
-                            {new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(msg.created_at).toLocaleTimeString(currentLocale === 'en' ? 'en-US' : currentLocale === 'ar' ? 'ar-MA' : 'fr-FR', { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
                       )
@@ -820,7 +832,7 @@ export function AdminDashboard() {
 
                   <div className="p-3 bg-card border-t border-border shrink-0 mt-auto">
                     <form onSubmit={(e) => { e.preventDefault(); handleSendReply(); }} className="flex items-center gap-2">
-                      <input type="text" placeholder="Écrire un message..." className="flex-1 rounded-full border border-border bg-secondary/50 px-4 py-3 md:py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary" value={replyText} onChange={(e) => setReplyText(e.target.value)} />
+                      <input type="text" placeholder={t("messagesTab.placeholder")} className="flex-1 rounded-full border border-border bg-secondary/50 px-4 py-3 md:py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary" value={replyText} onChange={(e) => setReplyText(e.target.value)} />
                       <Button type="submit" size="icon" className="rounded-full shrink-0 h-10 w-10 md:h-9 md:w-9" disabled={!replyText.trim() || sendingReply}>
                         {sendingReply ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 ml-0.5" />}
                       </Button>
@@ -830,18 +842,20 @@ export function AdminDashboard() {
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-6 text-center hidden md:flex">
                   <MessageSquare className="h-12 w-12 mb-4 opacity-20" />
-                  <p>Sélectionnez une discussion.</p>
+                  <p>{t("messagesTab.empty")}</p>
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* 🌟 NOUVEL ONGLET : NOTIFICATIONS (Activités) 🌟 */}
+        {/* 🌟 ONGLET : NOTIFICATIONS 🌟 */}
         {adminTab === "notifications" && (
             <div className="flex flex-col gap-3">
                 <div className="mb-2 flex justify-between items-center">
-                    <h2 className="text-lg font-semibold font-serif">Activité sur vos annonces ({agencyNotifications.length})</h2>
+                    <h2 className="text-lg font-semibold font-serif">
+                      <span>{t("notificationsTab.title")} </span> <span>({agencyNotifications.length})</span>
+                    </h2>
                 </div>
 
                 {loadingNotifs ? (
@@ -849,7 +863,7 @@ export function AdminDashboard() {
                 ) : paginatedNotifs.length === 0 ? (
                     <div className="text-center py-12 border border-dashed rounded-xl text-muted-foreground bg-card shadow-sm flex flex-col items-center justify-center gap-3">
                         <Heart className="h-8 w-8 text-muted-foreground opacity-30" />
-                        <p>Personne n'a encore ajouté vos biens en favoris.</p>
+                        <p>{t("notificationsTab.empty")}</p>
                     </div>
                 ) : (
                     <div className="flex flex-col gap-3">
@@ -861,10 +875,10 @@ export function AdminDashboard() {
                                     </div>
                                     <div className="flex flex-col">
                                         <p className="text-sm text-foreground">
-                                            <span className="font-semibold">{notif.user_name}</span> a ajouté votre annonce à ses favoris.
+                                            <span className="font-semibold">{notif.user_name}</span> <span>{t("notificationsTab.addedToFav")}</span>
                                         </p>
                                         <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mt-1">
-                                            <Link href={`/biens/${notif.property_id}`} className="text-sm font-medium text-primary hover:underline flex items-center gap-1">
+                                            <Link href={l(`/biens/${notif.property_id}`)} className="text-sm font-medium text-primary hover:underline flex items-center gap-1">
                                                 <Building2 className="h-3.5 w-3.5" />
                                                 {notif.property_title}
                                             </Link>
@@ -874,7 +888,6 @@ export function AdminDashboard() {
                                                 <User className="h-3 w-3" /> {notif.user_email}
                                             </span>
                                             
-                                            {/* Téléphone affiché s'il existe */}
                                             {notif.user_phone && (
                                               <>
                                                 <span className="hidden sm:inline text-muted-foreground">•</span>
@@ -887,48 +900,25 @@ export function AdminDashboard() {
                                     </div>
                                 </div>
                                 <div className="text-xs text-muted-foreground whitespace-nowrap self-end sm:self-center bg-secondary px-2 py-1 rounded-md">
-                                    {new Date(notif.created_at).toLocaleDateString('fr-FR', {
+                                    {new Date(notif.created_at).toLocaleDateString(currentLocale === 'en' ? 'en-US' : currentLocale === 'ar' ? 'ar-MA' : 'fr-FR', {
                                         day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
                                     })}
                                 </div>
                             </div>
                         ))}
 
-                        {/* Pagination stricte (1 et 2 maximum) */}
-                        {totalNotifPages > 1 && (
-                            <div className="mt-6 flex items-center justify-center gap-2">
-                              <Button variant="outline" size="icon" onClick={() => setCurrentNotifPage(p => Math.max(p - 1, 1))} disabled={currentNotifPage === 1}>
-                                <ChevronLeft className="h-4 w-4" />
-                              </Button>
-
-                              {Array.from({ length: totalNotifPages }, (_, i) => i + 1)
-                                .filter(p => {
-                                  if (currentNotifPage === totalNotifPages) return p === totalNotifPages || p === totalNotifPages - 1;
-                                  return p === currentNotifPage || p === currentNotifPage + 1;
-                                })
-                                .map((p) => (
-                                  <Button key={p} variant={currentNotifPage === p ? "default" : "outline"} className="h-9 w-9 p-0" onClick={() => setCurrentNotifPage(p)}>
-                                    {p}
-                                  </Button>
-                                ))
-                              }
-
-                              <Button variant="outline" size="icon" onClick={() => setCurrentNotifPage(p => Math.min(p + 1, totalNotifPages))} disabled={currentNotifPage === totalNotifPages}>
-                                <ChevronRight className="h-4 w-4" />
-                              </Button>
-                            </div>
-                        )}
+                        <Pagination currentPage={currentNotifPage} totalPages={totalNotifPages} onPageChange={setCurrentNotifPage} textPage={t("pagination.page")} textOf={t("pagination.of")} />
                     </div>
                 )}
             </div>
         )}
 
-        {/* 🌟 ONGLET : FAVORIS (FIX CORRIGÉ) 🌟 */}
+        {/* 🌟 ONGLET : FAVORIS 🌟 */}
         {adminTab === "favoris" && (
           <div className="flex flex-col gap-3">
             {loadingFavs ? <div className="flex justify-center py-10"><Loader2 className="animate-spin text-primary" /></div> : (
               <>
-                  {favorites.length === 0 ? <div className="text-center py-10 border border-dashed rounded-xl shadow-sm bg-card">Aucun favori.</div> : 
+                  {favorites.length === 0 ? <div className="text-center py-10 border border-dashed rounded-xl shadow-sm bg-card">{t("favoritesTab.empty")}</div> : 
                   <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {paginate(favorites, favPage).map((f) => (
                     <div key={f.id} className="group relative overflow-hidden rounded-xl border border-border bg-card transition-all shadow-sm hover:shadow-md">
@@ -936,7 +926,7 @@ export function AdminDashboard() {
                             <Image src={getImageUrl(f.images)} alt={f.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" unoptimized />
                         </div>
                         <div className="p-4 flex-1">
-                            <Link href={`/biens/${f.id}`} className="text-sm font-semibold hover:text-primary hover:underline truncate block">{f.title}</Link>
+                            <Link href={l(`/biens/${f.slug || f.id}`)} className="text-sm font-semibold hover:text-primary hover:underline truncate block">{f.title}</Link>
                             <div className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-primary" /> {f.city}</div>
                             <p className="font-bold text-primary mt-2">{formatPrice(f.price, f.transaction_type)}</p>
                         </div>
@@ -945,23 +935,18 @@ export function AdminDashboard() {
                               <Heart className="h-5 w-5 fill-current" />
                             </Button>
                         </div>
-                        <Link href={`/biens/${f.id}`} className="absolute inset-0 z-10" />
+                        <Link href={l(`/biens/${f.slug || f.id}`)} className="absolute inset-0 z-10" />
                     </div>
                     ))}
                   </div>
                   }
-                  {getPages(favorites) > 1 && (
-                      <div className="mt-6 flex justify-center gap-2">
-                          <Button variant="outline" size="icon" onClick={() => setFavPage(p => Math.max(p - 1, 1))} disabled={favPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
-                          <Button variant="outline" size="icon" onClick={() => setFavPage(p => Math.min(p + 1, getPages(favorites)))} disabled={favPage === getPages(favorites)}><ChevronRight className="h-4 w-4" /></Button>
-                      </div>
-                  )}
+                  <Pagination currentPage={favPage} totalPages={getPages(favorites)} onPageChange={setFavPage} textPage={t("pagination.page")} textOf={t("pagination.of")} />
               </>
             )}
           </div>
         )}
 
-        {/* ONGLET : CONTACTS SITE */}
+        {/* 🌟 ONGLET : CONTACTS SITE 🌟 */}
         {adminTab === "contacts" && (
           <div className="flex flex-col gap-4">
             {loadingContacts ? (
@@ -972,7 +957,7 @@ export function AdminDashboard() {
               <>
                 {contacts.length === 0 ? (
                   <div className="text-center py-10 border border-dashed rounded-xl text-muted-foreground shadow-sm bg-card">
-                    Aucun message de contact au site.
+                    {t("contactsTab.empty")}
                   </div>
                 ) : (
                   paginate(contacts, contactPage).map((c) => (
@@ -984,7 +969,7 @@ export function AdminDashboard() {
                           </div>
                           <div className="text-xs text-muted-foreground flex items-center gap-1.5">
                             <Clock className="h-3 w-3" />
-                            {new Date(c.created_at).toLocaleDateString("fr-FR", {
+                            {new Date(c.created_at).toLocaleDateString(currentLocale === 'en' ? 'en-US' : currentLocale === 'ar' ? 'ar-MA' : 'fr-FR', {
                               day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
                             })}
                           </div>
@@ -995,7 +980,7 @@ export function AdminDashboard() {
                           size="icon"
                           className="shrink-0 text-destructive hover:bg-destructive/10 h-8 w-8 -mt-1 -mr-1"
                           onClick={() => handleDeleteContact(c.id)}
-                          title="Supprimer ce message"
+                          title={t("contactsTab.deleteTitle")}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -1013,31 +998,26 @@ export function AdminDashboard() {
                       </div>
 
                       <div className="mt-2 rounded-lg bg-secondary/30 p-4 border border-border/50">
-                        <h4 className="text-sm font-semibold text-foreground mb-2">Sujet : {c.sujet}</h4>
+                        <h4 className="text-sm font-semibold text-foreground mb-2">
+                          <span>{t("contactsTab.subject")} </span> <span>{c.sujet}</span>
+                        </h4>
                         <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">{c.message}</p>
                       </div>
                     </div>
                   ))
                 )}
-
-                {getPages(contacts) > 1 && (
-                  <div className="mt-4 flex justify-center gap-2">
-                    <Button variant="outline" size="icon" onClick={() => setContactPage((p) => Math.max(p - 1, 1))} disabled={contactPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
-                    <span className="text-sm px-2 flex items-center text-muted-foreground">{contactPage} / {getPages(contacts)}</span>
-                    <Button variant="outline" size="icon" onClick={() => setContactPage((p) => Math.min(p + 1, getPages(contacts)))} disabled={contactPage === getPages(contacts)}><ChevronRight className="h-4 w-4" /></Button>
-                  </div>
-                )}
+                <Pagination currentPage={contactPage} totalPages={getPages(contacts)} onPageChange={setContactPage} textPage={t("pagination.page")} textOf={t("pagination.of")} />
               </>
             )}
           </div>
         )}
 
-{/* 🌟 ONGLET : SIGNALEMENTS (AJUSTÉ POUR MOBILE) 🌟 */}
+        {/* 🌟 ONGLET : SIGNALEMENTS 🌟 */}
         {adminTab === "signalements" && (
           <div className="flex flex-col gap-3">
               {loadingReports ? <div className="flex justify-center py-10"><Loader2 className="animate-spin text-primary" /></div> : (
                   <>
-                      {reports.length === 0 ? <div className="text-center py-10 border border-dashed rounded-xl text-muted-foreground shadow-sm bg-card">Aucun signalement en attente.</div> :
+                      {reports.length === 0 ? <div className="text-center py-10 border border-dashed rounded-xl text-muted-foreground shadow-sm bg-card">{t("reportsTab.empty")}</div> :
                       paginate(reports, reportPage).map((report) => (
                           <div key={report.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 rounded-xl border border-red-200 bg-red-50/20 p-5 transition-all shadow-sm hover:shadow-md">
                               
@@ -1048,31 +1028,30 @@ export function AdminDashboard() {
                               <div className="flex-1 min-w-0 w-full">
                                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-3">
                                       <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                                          Annonce : 
+                                          <span>{t("reportsTab.ad")} </span> 
                                           {report.property_id ? (
-                                              <Link href={`/biens/${report.property_id}`} className="text-primary hover:underline flex items-center gap-1 truncate">
-                                                  {report.property_title || "Annonce supprimée"}
+                                              <Link href={l(`/biens/${report.property_id}`)} className="text-primary hover:underline flex items-center gap-1 truncate">
+                                                  <span>{report.property_title || t("reportsTab.deletedAd")}</span>
                                                   <Eye className="h-3 w-3 shrink-0" />
                                               </Link>
                                           ) : (
-                                              <span className="text-primary truncate">{report.property_title || "Annonce supprimée"}</span>
+                                              <span className="text-primary truncate">{report.property_title || t("reportsTab.deletedAd")}</span>
                                           )}
                                       </h4>
                                       <Badge variant="outline" className="bg-white border-red-200 text-red-600 self-start sm:self-auto">{report.status || 'en attente'}</Badge>
                                   </div>
                                   
                                   <p className="text-sm text-foreground/90 italic bg-white p-3 rounded-md border border-red-100 mb-3 shadow-sm">
-                                      "{report.reason}"
+                                      &quot;{report.reason}&quot;
                                   </p>
                                   
                                   <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-1.5">
-                                      <User className="h-3.5 w-3.5" /> Signalé par <span className="font-medium">{report.reporter}</span>
+                                      <User className="h-3.5 w-3.5" /> <span>{t("reportsTab.reportedBy")} </span> <span className="font-medium">{report.reporter}</span>
                                       <span className="mx-1 hidden sm:inline">•</span>
-                                      <Clock className="h-3.5 w-3.5 ml-0 sm:ml-2" /> {report.date}
+                                      <Clock className="h-3.5 w-3.5 ml-0 sm:ml-2" /> <span>{report.date}</span>
                                   </div>
                               </div>
 
-                              {/* 🌟 ZONE DES BOUTONS D'ACTION MODIFIÉE 🌟 */}
                               <div className="flex flex-col gap-2 w-full sm:w-auto mt-2 sm:mt-0 shrink-0">
                                   
                                   {/* BOUTON 1 : SUPPRIMER L'ANNONCE ENTIÈREMENT */}
@@ -1082,33 +1061,26 @@ export function AdminDashboard() {
                                           className="w-full sm:w-auto h-11 sm:h-9"
                                           onClick={() => {
                                               handleDelete(report.property_id);
-                                              // On retire aussi le signalement de l'écran pour que ce soit propre
                                               setReports(prev => prev.filter(r => r.id !== report.id));
                                           }}
                                       >
-                                          <Trash2 className="h-4 w-4 mr-2" /> Supprimer l'annonce
+                                          <Trash2 className="h-4 w-4 mr-2" /> <span>{t("reportsTab.deleteAd")}</span>
                                       </Button>
                                   )}
 
-                                  {/* BOUTON 2 : IGNORER LE SIGNALEMENT (L'annonce reste en ligne) */}
+                                  {/* BOUTON 2 : IGNORER LE SIGNALEMENT */}
                                   <Button 
                                       variant="outline" 
                                       className="w-full sm:w-auto h-11 sm:h-9 text-muted-foreground border-border hover:bg-secondary bg-white"
                                       onClick={() => handleDeleteReport(report.id)}
                                   >
-                                      <CheckCircle2 className="h-4 w-4 mr-2" /> Ignorer le signalement
+                                      <CheckCircle2 className="h-4 w-4 mr-2" /> <span>{t("reportsTab.ignore")}</span>
                                   </Button>
                               </div>
                           </div>
                       ))}
 
-                      {getPages(reports) > 1 && (
-                          <div className="mt-4 flex justify-center gap-2">
-                              <Button variant="outline" size="icon" onClick={() => setReportPage(p => Math.max(p - 1, 1))} disabled={reportPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
-                              <span className="text-sm px-2 flex items-center text-muted-foreground">{reportPage} / {getPages(reports)}</span>
-                              <Button variant="outline" size="icon" onClick={() => setReportPage(p => Math.min(p + 1, getPages(reports)))} disabled={reportPage === getPages(reports)}><ChevronRight className="h-4 w-4" /></Button>
-                          </div>
-                      )}
+                      <Pagination currentPage={reportPage} totalPages={getPages(reports)} onPageChange={setReportPage} textPage={t("pagination.page")} textOf={t("pagination.of")} />
                   </>
               )}
           </div>

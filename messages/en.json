@@ -1,0 +1,802 @@
+{
+  "Navbar": {
+    "home": "Home",
+    "properties": "Properties",
+    "contact": "Contact",
+    "about": "About",
+    "publish": "Publish",
+    "login": "Login",
+    "profile": "My Profile",
+    "dashboard": "Dashboard",
+    "logout": "Logout"
+  },
+  "HomePage": {
+    "heroBadge": "Over 5,000 verified listings",
+    "heroTitle": "Find|the property|of your|dreams",
+    "heroDesc1": "Explore thousands of verified real estate listings across Morocco.",
+    "heroDesc2": "Sales, rentals, apartments, villas and more.",
+    "scroll": "Scroll down",
+    "stats": {
+      "activeAds": "Active listings",
+      "users": "Users",
+      "verifiedAds": "Verified listings",
+      "transactions": "Successful transactions"
+    },
+    "featured": {
+      "subtitle": "Featured properties",
+      "title": "Our latest listings",
+      "viewAll": "View all",
+      "viewAllMobile": "View all listings",
+      "empty": "No listings found."
+    },
+    "cities": {
+      "subtitle": "Explore by city",
+      "title": "Top cities in Morocco",
+      "ad": "listing",
+      "ads": "listings"
+    },
+    "cta": {
+      "client": {
+        "title": "Ready to find your ideal home?",
+        "desc": "Explore our exclusive offers and find the rare gem among thousands of verified listings.",
+        "button": "Browse listings"
+      },
+      "guest": {
+        "title": "Have a property to sell or rent?",
+        "desc": "Publish your ad for free and reach thousands of potential clients across Morocco.",
+        "button": "Post an ad"
+      }
+    }
+  },
+  "SearchBar": {
+    "city": "City",
+    "type": "Type",
+    "allCities": "All cities",
+    "allTypes": "All types",
+    "searchBtn": "Search",
+    "transactionTypes": {
+      "vente": "Buy",
+      "location": "Rent"
+    },
+    "propertyTypes": {
+      "appartement": "Apartment",
+      "villa": "Villa",
+      "maison": "House",
+      "terrain": "Land",
+      "bureau": "Office"
+    }
+  },
+  "PropertiesPage": {
+    "hero": {
+      "badge": "Smart AI-powered search",
+      "title1": "Find your property",
+      "title2": "magically",
+      "desc": "Simply describe what you are looking for — our AI does the rest."
+    },
+    "search": {
+      "placeholder": "Ex: Villa in Tangier with pool under 15,000 DH...",
+      "button": "Search",
+      "try": "Try:"
+    },
+    "suggestions": {
+      "s1": "Apartment in Tangier under 5000",
+      "s2": "Villa with pool in Marrakech",
+      "s3": "Apartment in Rabat for student"
+    },
+    "results": {
+      "searched": "Search results",
+      "all": "All properties",
+      "foundSingular": "property found",
+      "foundPlural": "properties found"
+    },
+    "filters": {
+      "toggle": "Filters",
+      "refine": "Refine search",
+      "clear": "Clear all",
+      "city": "City",
+      "type": "Type",
+      "transaction": "Transaction",
+      "rooms": "Min. rooms",
+      "minPrice": "Min price (DH)",
+      "maxPrice": "Max price (DH)",
+      "minSurface": "Min surface (m²)",
+      "allFeminine": "All",
+      "allMasculine": "All",
+      "unlimited": "Unlimited"
+    },
+    "sort": {
+      "recent": "Most recent",
+      "priceAsc": "Price: Low to High",
+      "priceDesc": "Price: High to Low"
+    },
+    "states": {
+      "loading": "Analyzing your request…",
+      "emptyTitle": "No properties found",
+      "emptyDesc": "Try rephrasing your search or removing some filters.",
+      "emptyButton": "View all properties"
+    }
+  },
+  "ContactPage": {
+    "hero": {
+      "subtitle": "Contact us",
+      "title": "Get in|touch",
+      "desc1": "A question, a suggestion, or need help?",
+      "desc2": "Our team is at your disposal."
+    },
+    "info": {
+      "title": "Our details",
+      "addressLabel": "Address",
+      "addressLine1": "123 Mohammed V Boulevard",
+      "addressLine2": "Casablanca, Morocco",
+      "phoneLabel": "Phone",
+      "phoneVal": "+212 5 22 00 00 00",
+      "emailLabel": "Email",
+      "emailVal": "contact@immomaroc.ma",
+      "hoursLabel": "Hours",
+      "hoursLine1": "Mon - Fri: 9am – 6pm",
+      "hoursLine2": "Sat: 9am – 1pm",
+      "guarantee": "Guaranteed response within 24 business hours"
+    },
+    "form": {
+      "successTitle": "Message sent!",
+      "successDesc": "We have received your message and will reply as soon as possible.",
+      "successButton": "Send another message",
+      "error": "An error occurred while sending. Please try again.",
+      "title": "Send us a message",
+      "subtitle": "All fields are required.",
+      "lastName": "Last Name",
+      "lastNamePlaceholder": "Your last name",
+      "firstName": "First Name",
+      "firstNamePlaceholder": "Your first name",
+      "email": "Email",
+      "emailPlaceholder": "your@email.com",
+      "phone": "Phone",
+      "phonePlaceholder": "+212 6 00 00 00 00",
+      "subject": "Subject",
+      "subjectPlaceholder": "Choose a subject",
+      "subj1": "Information request",
+      "subj2": "Technical support",
+      "subj3": "Partnership",
+      "subj4": "Other",
+      "message": "Message",
+      "messagePlaceholder": "Your message...",
+      "charSingular": "character",
+      "charsPlural": "characters",
+      "sending": "Sending…",
+      "sendBtn": "Send message"
+    }
+  },
+  "AboutPage": {
+    "hero": {
+      "subtitle": "About us",
+      "title": "The reference for real estate in Morocco",
+      "desc": "ImmoMaroc was born from the desire to modernize the Moroccan real estate market by offering a reliable, transparent, and accessible platform for everyone."
+    },
+    "mission": {
+      "subtitle": "Our mission",
+      "title": "Making real estate accessible to all",
+      "p1": "Since our creation, our goal has been to democratize access to real estate information in Morocco. We believe that everyone deserves to find the property that fits their needs and budget.",
+      "p2": "Our platform connects buyers, tenants, owners, and real estate agencies in a secure and transparent environment. We verify every listing to ensure the quality of information.",
+      "quote": "Finding your home should never be a struggle — that is our reason for being.",
+      "author": "— Karim El Amrani, Founder"
+    },
+    "stats": {
+      "ads": "Listings",
+      "users": "Users",
+      "cities": "Cities",
+      "transactions": "Transactions"
+    },
+    "values": {
+      "subtitle": "Our values",
+      "title": "What drives us",
+      "v1": {
+        "title": "Trust",
+        "desc": "All our listings are verified to guarantee the reliability of the information."
+      },
+      "v2": {
+        "title": "Simplicity",
+        "desc": "An intuitive interface for a quick and efficient search for your ideal property."
+      },
+      "v3": {
+        "title": "Proximity",
+        "desc": "We connect buyers, tenants, and real estate professionals."
+      },
+      "v4": {
+        "title": "Excellence",
+        "desc": "A premium service with personalized support at every step."
+      }
+    },
+    "team": {
+      "subtitle": "Our team",
+      "title": "Passionate experts at your service",
+      "roles": {
+        "ceo": "Founder & CEO",
+        "sales": "Sales Director",
+        "tech": "Technical Director",
+        "marketing": "Marketing Manager"
+      }
+    },
+    "cta": {
+      "user": {
+        "title": "Need help?",
+        "desc": "Our team is at your disposal to support you in all your real estate projects."
+      },
+      "guest": {
+        "title": "Join ImmoMaroc",
+        "desc": "Whether you are a buyer, a tenant, or a professional, our platform is made for you."
+      },
+      "buttons": {
+        "createAccount": "Create an account",
+        "contact": "Contact us"
+      }
+    }
+  },
+  "Footer": {
+    "aboutText": "The leading real estate platform in Morocco. Find your ideal property among thousands of verified listings.",
+    "nav": {
+      "title": "Navigation",
+      "home": "Home",
+      "allProperties": "All properties",
+      "dashboard": "My dashboard",
+      "publish": "Post an ad",
+      "about": "About",
+      "contact": "Contact"
+    },
+    "types": {
+      "title": "Property types",
+      "apartments": "Apartments",
+      "villas": "Villas",
+      "houses": "Houses",
+      "lands": "Lands",
+      "offices": "Offices"
+    },
+    "contact": {
+      "title": "Contact",
+      "address": "123 Mohammed V Boulevard, Casablanca",
+      "phone": "+212 5 22 00 00 00",
+      "email": "contact@immomaroc.ma"
+    },
+    "copyright": "All rights reserved."
+  },
+  "ProfilePage": {
+    "title": "My Profile",
+    "editPhoto": "Edit photo",
+    "memberSince": "Member since",
+    "form": {
+      "title": "Personal Information",
+      "fullName": "Full Name",
+      "namePlaceholder": "Your name",
+      "email": "Email Address",
+      "emailPlaceholder": "example@email.com",
+      "phone": "Phone Number",
+      "phonePlaceholder": "06 00 00 00 00",
+      "password": "Password",
+      "passwordHelp": "To change your password, please contact support."
+    },
+    "buttons": {
+      "edit": "Edit",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "alerts": {
+      "profileUpdated": "Profile updated successfully!",
+      "profileError": "Error updating profile.",
+      "uploading": "Uploading image...",
+      "avatarUpdated": "Profile picture updated!",
+      "avatarError": "Error uploading image."
+    }
+  },
+  "ClientDashboard": {
+    "tabs": {
+      "favorites": "My Favorites",
+      "alerts": "Alerts",
+      "messages": "Messages"
+    },
+    "pagination": {
+      "page": "Page",
+      "of": "of"
+    },
+    "favorites": {
+      "empty": "You have no favorites yet.",
+      "remove": "Remove from favorites"
+    },
+    "alerts": {
+      "empty": "You have no alerts at the moment.",
+      "delete": "Delete alert"
+    },
+    "messages": {
+      "empty": "You haven't sent any messages.",
+      "myDiscussions": "My discussions",
+      "deletedProperty": "Deleted/unknown listing",
+      "agencyOwner": "Agency / Owner",
+      "with": "With:",
+      "ad": "Listing:",
+      "viewAd": "View listing",
+      "placeholder": "Type a message...",
+      "selectThread": "Select a discussion to view messages.",
+      "confirmDelete": "Are you sure you want to delete this message?",
+      "errorDelete": "Unable to delete message.",
+      "errorSend": "Error: Unable to send."
+    }
+  },
+  "PropertyCard": {
+    "loginRequired": "You must be logged in to add a favorite.",
+    "addFav": "Add to favorites",
+    "removeFav": "Remove from favorites",
+    "beds": "beds",
+    "baths": "baths"
+  },
+  "DashboardPage": {
+    "title": "Dashboard",
+    "welcome": "Welcome,",
+    "workspace": "Workspace",
+    "unauthorized": "Account type not recognized or access denied."
+  },
+  "AuthPage": {
+    "login": {
+      "title": "Login",
+      "subtitle": "Log in to access your space."
+    },
+    "register": {
+      "title": "Create an account",
+      "subtitle": "Sign up to enjoy all features."
+    },
+    "form": {
+      "name": "Full Name",
+      "namePlaceholder": "Your name",
+      "phone": "Phone Number",
+      "phonePlaceholder": "Ex: 06 00 00 00 00",
+      "email": "Email",
+      "emailPlaceholder": "your@email.com",
+      "password": "Password",
+      "passwordPlaceholder": "Your password",
+      "role": "Account Type",
+      "rememberMe": "Remember me",
+      "forgotPassword": "Forgot password?"
+    },
+    "roles": {
+      "client": "Client",
+      "owner": "Owner",
+      "agency": "Agency"
+    },
+    "buttons": {
+      "login": "Log in",
+      "register": "Create account",
+      "loading": "Loading..."
+    },
+    "switch": {
+      "toRegister": "Don't have an account?",
+      "toLogin": "Already registered?"
+    },
+    "banner": {
+      "title": "Welcome to ConceptImmo",
+      "desc": "The leading real estate platform in Morocco. Find, publish and manage your properties with ease."
+    },
+    "errors": {
+      "default": "An error occurred."
+    }
+  },
+  "AgencyDashboard": {
+    "pagination": {
+      "page": "Page",
+      "of": "of"
+    },
+    "sidebar": {
+      "title": "Agency Workspace",
+      "ads": "My listings",
+      "messages": "My Messages",
+      "favorites": "My Favorites",
+      "activities": "Activities",
+      "performance": "Performance",
+      "stats": "My Statistics"
+    },
+    "quickStats": {
+      "ads": "Listings",
+      "contacts": "Contacts",
+      "likes": "Likes received",
+      "views": "Views"
+    },
+    "adsTab": {
+      "title": "Your own listings",
+      "publish": "Publish",
+      "empty": "No listings.",
+      "views": "views",
+      "edit": "Edit",
+      "delete": "Delete",
+      "confirmDelete": "Are you sure you want to delete this listing?",
+      "errorDelete": "Unable to delete."
+    },
+    "favoritesTab": {
+      "empty": "No favorites."
+    },
+    "notificationsTab": {
+      "title": "Activity on your listings",
+      "empty": "No one has added your properties to favorites yet.",
+      "addedToFav": "added your listing to their favorites."
+    },
+    "messagesTab": {
+      "conversations": "Conversations",
+      "placeholder": "Type a message...",
+      "empty": "Select a conversation to view messages.",
+      "confirmDelete": "Are you sure you want to delete this message?",
+      "errorDelete": "Unable to delete the message.",
+      "errorSend": "Error while sending.",
+      "ad": "Listing:",
+      "discussionOwner": "Discussion with the advertiser",
+      "aboutAd": "Regarding:"
+    },
+    "statsTab": {
+      "contactRate": "Contact Rate",
+      "contactRateSub": "Views → Messages",
+      "avgViews": "Avg Views",
+      "avgViewsSub": "Views / Listing",
+      "online": "Properties Online",
+      "onlineSub": "Published",
+      "pending": "In Moderation",
+      "pendingSub": "Pending",
+      "topAdsTitle": "Your most viewed listings",
+      "emptyTopAds": "No listings.",
+      "viewSingular": "view",
+      "viewPlural": "views",
+      "portfolioTitle": "Portfolio breakdown",
+      "forSale": "Properties for Sale",
+      "forRent": "Properties for Rent",
+      "sale": "Sale",
+      "rent": "Rent"
+    },
+    "status": {
+      "publié": "Published",
+      "en attente": "Pending",
+      "rejeté": "Rejected"
+    }
+  },
+  "PropertyDetail": {
+    "breadcrumb": {
+      "home": "Home",
+      "properties": "Properties"
+    },
+    "notFound": {
+      "title": "Property not found",
+      "btn": "Back to listings"
+    },
+    "actions": {
+      "addFav": "Add to favorites",
+      "removeFav": "Remove from favorites",
+      "report": "Report"
+    },
+    "specs": {
+      "surface": "Area",
+      "rooms": "Rooms",
+      "bedrooms": "Bedrooms",
+      "bathrooms": "Baths"
+    },
+    "sections": {
+      "desc": "Description",
+      "equipments": "Amenities",
+      "location": "Location"
+    },
+    "stats": {
+      "viewsSingular": "view",
+      "viewsPlural": "views",
+      "publishedOn": "Published on"
+    },
+    "date": {
+      "recent": "Recently"
+    },
+    "sidebar": {
+      "agencyOwner": "Agency / Owner",
+      "verified": "Verified",
+      "call": "Call",
+      "openChat": "Send a message",
+      "closeChat": "Close chat"
+    },
+    "chat": {
+      "emailReply": "Reply by email",
+      "welcomeMsg": "Hello! Do you have a question about this property? Leave your message here.",
+      "placeholder": "Type your message..."
+    },
+    "report": {
+      "title": "Report this listing",
+      "success": "Report sent!",
+      "placeholder": "State the reason...",
+      "cancel": "Cancel",
+      "submit": "Send"
+    },
+    "similar": {
+      "title": "Similar properties"
+    },
+    "alerts": {
+      "loginRequired": "You must be logged in to add favorites. Would you like to log in?",
+      "errorSend": "Error while sending.",
+      "confirmDeleteMsg": "Are you sure you want to delete this message?",
+      "errorDeleteMsg": "Unable to delete the message.",
+      "loginToReport": "You must be logged in to report a listing. Would you like to log in?",
+      "errorReport": "Error sending the report."
+    }
+  },
+  "PublishPage": {
+    "title": "Publish a Listing",
+    "subtitle": "Fill out the information below to publish your property.",
+    "sections": {
+      "general": "General Information",
+      "details": "Property Details",
+      "location": "Location",
+      "equipments": "Amenities",
+      "photos": "Photos"
+    },
+    "fields": {
+      "title": "Listing Title",
+      "transaction": "Transaction Type",
+      "propertyType": "Property Type",
+      "desc": "Description",
+      "price": "Price (DH)",
+      "surface": "Area (m²)",
+      "rooms": "Total Rooms",
+      "bedrooms": "Bedrooms",
+      "bathrooms": "Bathrooms",
+      "city": "City",
+      "address": "Full Address"
+    },
+    "placeholders": {
+      "title": "E.g: Modern apartment downtown",
+      "desc": "Describe your property in detail...",
+      "address": "E.g: Malabata district, Street 2"
+    },
+    "select": {
+      "choose": "Choose",
+      "chooseCity": "Choose a city"
+    },
+    "map": {
+      "title": "Place on the map (Optional)",
+      "desc": "Click on the map to set the exact location of the property. This will help clients better visualize.",
+      "saved": "Location saved",
+      "clear": "Clear"
+    },
+    "equipments": {
+      "parking": "Parking",
+      "pool": "Swimming Pool",
+      "garden": "Garden",
+      "elevator": "Elevator",
+      "ac": "Air Conditioning",
+      "security": "24/7 Security",
+      "terrace": "Terrace",
+      "garage": "Garage",
+      "fiber": "Fiber Optic",
+      "smartHome": "Smart Home",
+      "seaView": "Sea View",
+      "schools": "Near Schools",
+      "furnished": "Furnished"
+    },
+    "photos": {
+      "images": "images",
+      "dragDrop": "Drag your photos here",
+      "rules": "PNG, JPG up to 5MB each",
+      "chooseFiles": "Choose files",
+      "limit": "Limit reached"
+    },
+    "buttons": {
+      "publish": "Publish Listing",
+      "publishing": "Publishing..."
+    },
+    "success": {
+      "title": "Listing Submitted",
+      "desc": "Your listing has been successfully submitted. It will be published after verification by our team.",
+      "btnNew": "Publish another listing",
+      "btnDash": "My dashboard"
+    },
+    "alerts": {
+      "limitReached": "You have already reached the limit of 5 images.",
+      "partialAdd": "Only {num} images were added (limit of 5 reached).",
+      "publishError": "Error while publishing."
+    }
+  },
+  "EditPage": {
+    "title": "Edit Listing",
+    "subtitle": "Update your property's information.",
+    "sections": {
+      "general": "General Information",
+      "details": "Details",
+      "location": "Location",
+      "equipments": "Amenities",
+      "photos": "Photos"
+    },
+    "fields": {
+      "title": "Title",
+      "transaction": "Transaction",
+      "propertyType": "Property Type",
+      "desc": "Description",
+      "price": "Price (DH)",
+      "surface": "Area (m²)",
+      "rooms": "Rooms",
+      "bedrooms": "Bedrooms",
+      "bathrooms": "Bathrooms",
+      "city": "City",
+      "address": "Address"
+    },
+    "select": {
+      "choose": "Choose",
+      "chooseCity": "Choose a city"
+    },
+    "map": {
+      "title": "Location on map (Optional)",
+      "desc": "Click on the map to modify the exact location of the property.",
+      "saved": "Location saved",
+      "clear": "Clear"
+    },
+    "equipments": {
+      "parking": "Parking",
+      "pool": "Swimming Pool",
+      "garden": "Garden",
+      "elevator": "Elevator",
+      "ac": "Air Conditioning",
+      "security": "24/7 Security",
+      "terrace": "Terrace",
+      "garage": "Garage",
+      "fiber": "Fiber Optic",
+      "smartHome": "Smart Home",
+      "seaView": "Sea View",
+      "schools": "Near Schools",
+      "furnished": "Furnished"
+    },
+    "photos": {
+      "warning": "If you add new photos below, they will <strong>replace</strong> all current photos.",
+      "current": "Current photos:",
+      "dragDrop": "Drag your new photos here",
+      "chooseFiles": "Select new photos",
+      "limit": "Limit reached"
+    },
+    "buttons": {
+      "back": "Back",
+      "cancel": "Cancel",
+      "save": "Save changes",
+      "saving": "Saving..."
+    },
+    "alerts": {
+      "loadError": "Unable to load property information.",
+      "limitReached": "Limit of 5 new images reached.",
+      "partialAdd": "Only {num} images added.",
+      "updateError": "Error while updating."
+    }
+  },
+  "AdminDashboard": {
+    "pagination": {
+      "page": "Page",
+      "of": "of"
+    },
+    "sidebar": {
+      "adminTitle": "Administration",
+      "personalTitle": "Personal Space",
+      "users": "Users",
+      "siteAds": "Site Listings",
+      "reports": "Reports",
+      "globalStats": "Global Stats",
+      "siteContacts": "Site Contacts",
+      "myAds": "My Listings",
+      "myMessages": "My Messages",
+      "myStats": "My Statistics",
+      "activities": "Activities",
+      "favorites": "My Favorites"
+    },
+    "quickStats": {
+      "users": "Users",
+      "ads": "Total Ads",
+      "pending": "Pending",
+      "reports": "Reports",
+      "contacts": "Site Contacts"
+    },
+    "usersTab": {
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "actions": "Actions",
+      "empty": "No users found."
+    },
+    "adsTab": {
+      "empty": "No listings found.",
+      "by": "By:",
+      "unknown": "Unknown",
+      "views": "views",
+      "validate": "Validate",
+      "delete": "Delete"
+    },
+    "myAdsTab": {
+      "title": "Your own listings",
+      "publish": "Publish",
+      "empty": "You haven't published any listings.",
+      "views": "views",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "statsTab": {
+      "globalViews": "Global Views",
+      "onAllSite": "on the whole site",
+      "activeAds": "Active Listings",
+      "online": "online",
+      "users": "Users",
+      "registered": "registered",
+      "sentMessages": "Messages Sent",
+      "viaForms": "via forms",
+      "memberTypology": "Member Typology",
+      "clients": "Clients (Searchers)",
+      "agencies": "Real Estate Agencies",
+      "owners": "Private Owners",
+      "totalReports": "Total Reports",
+      "globalMarket": "Global Market Breakdown",
+      "forSale": "Properties for Sale",
+      "forRent": "Properties for Rent",
+      "sale": "Sale",
+      "rent": "Rent"
+    },
+    "myStatsTab": {
+      "contactRate": "Contact Rate",
+      "viewsToContacts": "Views → Contacts",
+      "avgViews": "Average Views",
+      "viewsPerAd": "Views / Listing",
+      "onlineAds": "Properties Online",
+      "published": "Published",
+      "pendingAds": "In Moderation",
+      "pending": "Pending",
+      "topAdsTitle": "Your most viewed listings",
+      "emptyTopAds": "No listings.",
+      "viewSingular": "view",
+      "viewsPlural": "views",
+      "portfolioTitle": "Your Portfolio Breakdown"
+    },
+    "contactsTab": {
+      "empty": "No contact messages for the site.",
+      "deleteTitle": "Delete this message",
+      "subject": "Subject:"
+    },
+    "reportsTab": {
+      "empty": "No pending reports.",
+      "ad": "Listing:",
+      "deletedAd": "Deleted listing",
+      "reportedBy": "Reported by",
+      "deleteAd": "Delete listing",
+      "ignore": "Ignore report"
+    },
+    "favoritesTab": {
+      "empty": "No favorites."
+    },
+    "notificationsTab": {
+      "title": "Activity on your listings",
+      "empty": "No one has added your properties to favorites yet.",
+      "addedToFav": "added your listing to their favorites."
+    },
+    "messagesTab": {
+      "conversations": "Personal Conversations",
+      "empty": "Select a discussion.",
+      "ad": "Listing:",
+      "discussionOwner": "Discussion with the advertiser",
+      "about": "Regarding:",
+      "placeholder": "Type a message..."
+    },
+    "alerts": {
+      "errorValidate": "Error during validation.",
+      "confirmDeleteSiteProp": "Permanently delete this listing?",
+      "errorDelete": "Deletion error.",
+      "confirmDeleteContact": "Are you sure you want to delete this message?",
+      "confirmDeleteReport": "Do you want to delete this report?",
+      "confirmDeleteMyProp": "Permanently delete your listing?",
+      "confirmDeleteMsg": "Are you sure you want to delete this message?",
+      "errorSend": "Error while sending."
+    },
+    "status": {
+      "publié": "Published",
+      "en attente": "Pending",
+      "rejeté": "Rejected"
+    }
+  },
+ "Chatbot": {
+    "title": "AI Assistant",
+    "online": "Online",
+    "initialMessage": "Hello! 👋 I am the smart assistant of Conceptify Real Estate. How can I help you today?",
+    "actions": {
+      "find": "I'm looking for a property 🔍",
+      "publish": "Publish a listing 📢",
+      "contact": "Be contacted 📞"
+    },
+    "placeholder": "Type your message...",
+    "error": "Sorry, I am having technical difficulties connecting to the server. Please try again later. ⚙️"
+  }
+}

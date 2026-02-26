@@ -1,8 +1,10 @@
+import createNextIntlPlugin from 'next-intl/plugin';
+
+// On précise bien le chemin pour éviter l'erreur de module introuvable
+const withNextIntl = createNextIntlPlugin('./i18n.ts');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   images: {
     remotePatterns: [
       {
@@ -13,6 +15,6 @@ const nextConfig = {
       },
     ],
   },
-}
+};
 
-export default nextConfig
+export default withNextIntl(nextConfig);

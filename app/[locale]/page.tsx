@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { useTranslations } from "next-intl" // 🌟 IMPORT NEXT-INTL
 import { ArrowRight, Building2, Users, Shield, TrendingUp, Loader2, MapPin, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Navbar } from "@/components/navbar"
@@ -13,13 +15,6 @@ import { cities } from "@/lib/data"
 import api from "@/services/api"
 
 const API_URL = "http://127.0.0.1:8000"
-
-const stats = [
-  { icon: Building2, value: "5,000+", label: "Annonces actives", delay: "0ms" },
-  { icon: Users, value: "12,000+", label: "Utilisateurs", delay: "100ms" },
-  { icon: Shield, value: "100%", label: "Annonces vérifiées", delay: "200ms" },
-  { icon: TrendingUp, value: "3,200+", label: "Transactions réussies", delay: "300ms" },
-]
 
 /* ─── Hook: intersection observer générique ─── */
 function useInView(threshold = 0.15) {
@@ -57,7 +52,7 @@ function AnimatedCounter({ target, duration = 1800 }: { target: string; duration
   return <span ref={ref}>{inView ? display : "0"}</span>
 }
 
-/* ─── Floating particle – valeurs fixes pour éviter l'erreur d'hydratation ─── */
+/* ─── Floating particle ─── */
 const PARTICLE_DATA = [
   { left: 12, top: 8,  delay: 0.0, dur: 7.2, w: 5, h: 4, op: 0.22 },
   { left: 28, top: 55, delay: 1.3, dur: 9.1, w: 4, h: 6, op: 0.28 },
@@ -102,6 +97,13 @@ function Particles() {
 }
 
 export default function HomePage() {
+  const t = useTranslations("HomePage") // 🌟 INITIALISATION TRADUCTION
+  const pathname = usePathname()
+  
+  // Fonction pour localiser les liens dynamiquement
+  const currentLocale = pathname.split("/")[1] || "fr"
+  const l = (path: string) => `/${currentLocale}${path}`
+
   const [featuredProperties, setFeaturedProperties] = useState<any[]>([])
   const [allProperties, setAllProperties] = useState<any[]>([])
   const [userFavorites, setUserFavorites] = useState<string[]>([])
@@ -114,9 +116,17 @@ export default function HomePage() {
   const { ref: citiesRef, inView: citiesInView } = useInView()
   const { ref: ctaRef, inView: ctaInView } = useInView()
 
+  // 🌟 DÉPLACEMENT DES STATS ICI POUR UTILISER t()
+  const stats = [
+    { icon: Building2, value: "5,000+", label: t("stats.activeAds"), delay: "0ms" },
+    { icon: Users, value: "12,000+", label: t("stats.users"), delay: "100ms" },
+    { icon: Shield, value: "100%", label: t("stats.verifiedAds"), delay: "200ms" },
+    { icon: TrendingUp, value: "3,200+", label: t("stats.transactions"), delay: "300ms" },
+  ]
+
   useEffect(() => {
-    const t = setTimeout(() => setHeroVisible(true), 80)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => setHeroVisible(true), 80)
+    return () => clearTimeout(timer)
   }, [])
 
   useEffect(() => {
@@ -167,135 +177,34 @@ export default function HomePage() {
 
   return (
     <>
-      {/* ── Global styles injectées ── */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap');
-
         :root { --ease-expo: cubic-bezier(0.16,1,0.3,1); }
-
-        /* Particules flottantes */
-        .particle {
-          position: absolute;
-          border-radius: 50%;
-          background: white;
-          animation: floatUp var(--dur,8s) ease-in-out infinite alternate;
-        }
-        @keyframes floatUp {
-          0%   { transform: translateY(0) scale(1); opacity: 0.2; }
-          50%  { transform: translateY(-40px) scale(1.3); opacity: 0.5; }
-          100% { transform: translateY(0) scale(1); opacity: 0.2; }
-        }
-
-        /* Scroll reveal */
+        .particle { position: absolute; border-radius: 50%; background: white; animation: floatUp var(--dur,8s) ease-in-out infinite alternate; }
+        @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 0.2; } 50% { transform: translateY(-40px) scale(1.3); opacity: 0.5; } 100% { transform: translateY(0) scale(1); opacity: 0.2; } }
         .reveal { opacity: 0; transform: translateY(36px); transition: opacity .7s var(--ease-expo), transform .7s var(--ease-expo); }
         .reveal.visible { opacity: 1; transform: translateY(0); }
-        .reveal-delay-1 { transition-delay: 100ms; }
-        .reveal-delay-2 { transition-delay: 200ms; }
-        .reveal-delay-3 { transition-delay: 320ms; }
-        .reveal-delay-4 { transition-delay: 440ms; }
-        .reveal-delay-5 { transition-delay: 560ms; }
-        .reveal-delay-6 { transition-delay: 680ms; }
-
-        /* Hero text entrance */
-        .hero-word {
-          display: inline-block;
-          opacity: 0;
-          transform: translateY(60px) rotateX(-20deg);
-          transition: opacity .8s var(--ease-expo), transform .8s var(--ease-expo);
-        }
+        .reveal-delay-1 { transition-delay: 100ms; } .reveal-delay-2 { transition-delay: 200ms; } .reveal-delay-3 { transition-delay: 320ms; } .reveal-delay-4 { transition-delay: 440ms; } .reveal-delay-5 { transition-delay: 560ms; } .reveal-delay-6 { transition-delay: 680ms; }
+        .hero-word { display: inline-block; opacity: 0; transform: translateY(60px) rotateX(-20deg); transition: opacity .8s var(--ease-expo), transform .8s var(--ease-expo); }
         .hero-visible .hero-word { opacity: 1; transform: none; }
-
-        /* Shimmer badge */
-        @keyframes shimmer {
-          0%   { background-position: -200% center; }
-          100% { background-position: 200% center; }
-        }
-        .badge-shimmer {
-          background: linear-gradient(90deg, rgba(255,255,255,0.12) 25%, rgba(255,255,255,0.35) 50%, rgba(255,255,255,0.12) 75%);
-          background-size: 200% auto;
-          animation: shimmer 2.5s linear infinite;
-        }
-
-        /* Stat card hover */
+        @keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
+        .badge-shimmer { background: linear-gradient(90deg, rgba(255,255,255,0.12) 25%, rgba(255,255,255,0.35) 50%, rgba(255,255,255,0.12) 75%); background-size: 200% auto; animation: shimmer 2.5s linear infinite; }
         .stat-card { transition: transform .3s var(--ease-expo), box-shadow .3s ease; }
         .stat-card:hover { transform: translateY(-6px) scale(1.03); box-shadow: 0 20px 40px -10px rgba(0,0,0,0.12); }
-
-        /* City card hover */
         .city-card { transition: all .35s var(--ease-expo); position: relative; overflow: hidden; }
-        .city-card::before {
-          content: '';
-          position: absolute; inset: 0;
-          background: linear-gradient(135deg, var(--primary) 0%, transparent 100%);
-          opacity: 0;
-          transition: opacity .35s ease;
-        }
+        .city-card::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, var(--primary) 0%, transparent 100%); opacity: 0; transition: opacity .35s ease; }
         .city-card:hover::before { opacity: 0.06; }
         .city-card:hover { border-color: var(--primary); box-shadow: 0 8px 32px -8px rgba(0,0,0,0.15); transform: translateY(-3px); }
-
-        /* Gradient text */
-        .gradient-text {
-          background: linear-gradient(135deg, #ffffff 30%, rgba(255,255,255,0.65) 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-
-        /* CTA glow */
-        .cta-glow {
-          position: relative;
-        }
-        .cta-glow::before {
-          content: '';
-          position: absolute;
-          inset: -1px;
-          border-radius: inherit;
-          background: linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0));
-          opacity: 0;
-          transition: opacity .3s;
-        }
+        .gradient-text { background: linear-gradient(135deg, #ffffff 30%, rgba(255,255,255,0.65) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .cta-glow { position: relative; }
+        .cta-glow::before { content: ''; position: absolute; inset: -1px; border-radius: inherit; background: linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0)); opacity: 0; transition: opacity .3s; }
         .cta-glow:hover::before { opacity: 1; }
-
-        /* Pulsing dot */
-        @keyframes pulse-dot {
-          0%, 100% { transform: scale(1); opacity: 1; }
-          50%       { transform: scale(1.6); opacity: 0.5; }
-        }
-        .pulse-dot {
-          width: 8px; height: 8px; border-radius: 50%;
-          background: #22c55e;
-          animation: pulse-dot 1.8s ease-in-out infinite;
-          display: inline-block;
-        }
-
-        /* Morphing blob in hero */
-        @keyframes morph {
-          0%,100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
-          25%      { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
-          50%      { border-radius: 50% 60% 30% 60% / 30% 50% 70% 40%; }
-          75%      { border-radius: 40% 70% 60% 30% / 70% 30% 40% 60%; }
-        }
-        .blob {
-          animation: morph 10s ease-in-out infinite;
-          background: radial-gradient(ellipse at center, rgba(255,255,255,0.08) 0%, transparent 70%);
-          pointer-events: none;
-        }
-
-        /* Loading skeleton pulse */
-        @keyframes skeletonPulse {
-          0%,100% { opacity: .4; }
-          50%      { opacity: .8; }
-        }
-        .skeleton { animation: skeletonPulse 1.4s ease-in-out infinite; }
-
-        /* Loader spinner custom */
+        @keyframes pulse-dot { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.6); opacity: 0.5; } }
+        .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; animation: pulse-dot 1.8s ease-in-out infinite; display: inline-block; }
+        @keyframes morph { 0%,100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; } 25% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; } 50% { border-radius: 50% 60% 30% 60% / 30% 50% 70% 40%; } 75% { border-radius: 40% 70% 60% 30% / 70% 30% 40% 60%; } }
+        .blob { animation: morph 10s ease-in-out infinite; background: radial-gradient(ellipse at center, rgba(255,255,255,0.08) 0%, transparent 70%); pointer-events: none; }
         @keyframes spin360 { to { transform: rotate(360deg); } }
-        .loader-ring {
-          width: 48px; height: 48px;
-          border: 3px solid rgba(0,0,0,0.06);
-          border-top-color: var(--primary);
-          border-radius: 50%;
-          animation: spin360 .8s linear infinite;
-        }
+        .loader-ring { width: 48px; height: 48px; border: 3px solid rgba(0,0,0,0.06); border-top-color: var(--primary); border-radius: 50%; animation: spin360 .8s linear infinite; }
       `}</style>
 
       <div className="min-h-screen bg-background" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -306,21 +215,20 @@ export default function HomePage() {
           <div className="absolute inset-0">
             <Image src="/images/img1-c.jpg" alt="Propriété de luxe" fill className="object-cover" priority style={{ transform: "scale(1.04)", transition: "transform 8s ease-out" }} />
             <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.45) 60%, rgba(0,0,0,0.65) 100%)" }} />
-            {/* Blob lumineux */}
             <div className="blob absolute" style={{ width: 600, height: 600, top: "10%", right: "-10%", borderRadius: "60% 40% 30% 70% / 60% 30% 70% 40%" }} />
             <div className="blob absolute" style={{ width: 400, height: 400, bottom: "5%", left: "-8%", borderRadius: "40% 60% 70% 30% / 30% 50% 60% 70%", animationDelay: "-4s" }} />
             <Particles />
           </div>
 
           <div className={`relative mx-auto max-w-7xl px-4 py-24 md:py-36 lg:px-8 w-full ${heroVisible ? "hero-visible" : ""}`}>
-            {/* Badge */}
+            
             <div className="mx-auto mb-6 flex justify-center">
               <span
                 className="badge-shimmer inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-1.5 text-sm text-white/90"
                 style={{ backdropFilter: "blur(12px)", background: "rgba(255,255,255,0.08)", opacity: heroVisible ? 1 : 0, transform: heroVisible ? "none" : "translateY(-16px)", transition: "all 0.6s var(--ease-expo)" }}
               >
                 <span className="pulse-dot" />
-                Plus de 5 000 annonces vérifiées
+                {t("heroBadge")}
                 <Sparkles className="h-3.5 w-3.5 opacity-70" />
               </span>
             </div>
@@ -330,13 +238,14 @@ export default function HomePage() {
                 className="mb-4 font-bold tracking-tight text-card md:text-5xl lg:text-6xl text-balance"
                 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "clamp(2.2rem,6vw,4rem)", lineHeight: 1.1 }}
               >
-                {["Trouvez", "le bien", "de vos", "rêves"].map((w, i) => (
+                {t("heroTitle").split("|").map((w, i, arr) => (
                   <span
                     key={i}
                     className="hero-word"
                     style={{ transitionDelay: `${i * 120 + 200}ms`, marginRight: "0.25em" }}
                   >
-                    {w === "rêves" ? <span className="gradient-text">{w}</span> : w}
+                    {/* Applique le gradient au dernier mot de la liste traduite */}
+                    {i === arr.length - 1 ? <span className="gradient-text">{w}</span> : w}
                   </span>
                 ))}
               </h1>
@@ -345,8 +254,8 @@ export default function HomePage() {
                 className="mb-10 text-lg leading-relaxed text-card/80 md:text-xl"
                 style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? "none" : "translateY(20px)", transition: "all 0.8s var(--ease-expo) 0.6s" }}
               >
-                Explorez des milliers d&apos;annonces vérifiées à travers tout le Maroc.&nbsp;
-                <span className="text-white/60">Vente, location, appartements, villas et plus encore.</span>
+                {t("heroDesc1")}&nbsp;
+                <span className="text-white/60">{t("heroDesc2")}</span>
               </p>
             </div>
 
@@ -357,12 +266,11 @@ export default function HomePage() {
               <SearchBar variant="hero" />
             </div>
 
-            {/* Scroll indicator */}
             <div
               className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1"
               style={{ opacity: heroVisible ? 0.6 : 0, transition: "opacity 1s ease 1.4s" }}
             >
-              <span className="text-white/50 text-xs tracking-widest uppercase">Défiler</span>
+              <span className="text-white/50 text-xs tracking-widest uppercase">{t("scroll")}</span>
               <div style={{ width: 1, height: 40, background: "linear-gradient(to bottom, rgba(255,255,255,0.6), transparent)" }} />
             </div>
           </div>
@@ -376,7 +284,7 @@ export default function HomePage() {
                 const Icon = stat.icon
                 return (
                   <div
-                    key={stat.label}
+                    key={i}
                     className={`stat-card text-center rounded-2xl p-6 reveal${statsInView ? " visible" : ""} reveal-delay-${i + 1}`}
                     style={{ background: "linear-gradient(135deg, rgba(var(--primary-rgb,0,0,0),0.03), transparent)" }}
                   >
@@ -400,15 +308,15 @@ export default function HomePage() {
             <div>
               <p className="mb-2 flex items-center gap-2 text-sm font-medium uppercase tracking-widest text-primary">
                 <span className="block h-px w-6 bg-primary" />
-                Biens en vedette
+                {t("featured.subtitle")}
               </p>
               <h2 className="font-bold text-foreground md:text-4xl" style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "clamp(1.8rem,4vw,2.8rem)" }}>
-                Nos dernières annonces
+                {t("featured.title")}
               </h2>
             </div>
-            <Link href="/biens">
+            <Link href={l("/biens")}>
               <Button variant="outline" className="hidden gap-2 md:flex cta-glow" style={{ borderRadius: 99 }}>
-                Voir tout <ArrowRight className="h-4 w-4" />
+                <span>{t("featured.viewAll")}</span> <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
           </div>
@@ -435,16 +343,16 @@ export default function HomePage() {
               ) : (
                 <div className="col-span-full flex flex-col items-center gap-3 py-20 text-muted-foreground">
                   <Building2 className="h-12 w-12 opacity-25" />
-                  <p>Aucune annonce trouvée.</p>
+                  <p>{t("featured.empty")}</p>
                 </div>
               )}
             </div>
           )}
 
           <div className="mt-10 text-center md:hidden">
-            <Link href="/biens">
+            <Link href={l("/biens")}>
               <Button variant="outline" className="gap-2" style={{ borderRadius: 99 }}>
-                Voir toutes les annonces <ArrowRight className="h-4 w-4" />
+                <span>{t("featured.viewAllMobile")}</span> <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
           </div>
@@ -455,10 +363,10 @@ export default function HomePage() {
           <div className="mx-auto max-w-7xl px-4 lg:px-8">
             <div className={`mb-12 text-center reveal${citiesInView ? " visible" : ""}`}>
               <p className="mb-2 inline-flex items-center gap-2 text-sm font-medium uppercase tracking-widest text-primary">
-                <MapPin className="h-3.5 w-3.5" /> Explorez par ville
+                <MapPin className="h-3.5 w-3.5" /> {t("cities.subtitle")}
               </p>
               <h2 className="font-bold text-foreground md:text-4xl" style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "clamp(1.8rem,4vw,2.8rem)" }}>
-                Principales villes du Maroc
+                {t("cities.title")}
               </h2>
             </div>
 
@@ -468,14 +376,14 @@ export default function HomePage() {
                 return (
                   <Link
                     key={city}
-                    href={`/biens?city=${city}`}
+                    href={l(`/biens?city=${city}`)}
                     className={`city-card group flex items-center justify-between rounded-2xl border border-border bg-card p-5 reveal${citiesInView ? " visible" : ""} reveal-delay-${Math.min(i + 1, 6)}`}
                     style={{ transitionDelay: `${i * 60}ms` }}
                   >
                     <div>
                       <h3 className="font-semibold text-foreground" style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "1.1rem" }}>{city}</h3>
                       <p className="text-sm text-muted-foreground mt-0.5">
-                        {count} annonce{count !== 1 ? "s" : ""}
+                        <span>{count}</span> <span>{count !== 1 ? t("cities.ads") : t("cities.ad")}</span>
                       </p>
                     </div>
                     <ArrowRight className="h-4 w-4 text-muted-foreground transition-all duration-300 group-hover:translate-x-1.5 group-hover:text-primary" />
@@ -488,7 +396,6 @@ export default function HomePage() {
 
         {/* ── CTA ── */}
         <section className="relative overflow-hidden bg-primary" ref={ctaRef}>
-          {/* Cercles décoratifs */}
           <div className="pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full border border-white/10" />
           <div className="pointer-events-none absolute -left-10 bottom-0 h-56 w-56 rounded-full border border-white/10" />
           <div className="pointer-events-none absolute right-1/3 top-1/2 h-32 w-32 -translate-y-1/2 rounded-full bg-white/5" />
@@ -498,28 +405,28 @@ export default function HomePage() {
               {user?.role === "client" ? (
                 <>
                   <h2 className="mb-4 font-bold text-primary-foreground" style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "clamp(1.8rem,4vw,2.6rem)" }}>
-                    Prêt à trouver le logement idéal ?
+                    {t("cta.client.title")}
                   </h2>
                   <p className="mb-10 text-lg leading-relaxed text-primary-foreground/80">
-                    Explorez nos offres exclusives et trouvez la perle rare parmi nos milliers d&apos;annonces vérifiées.
+                    {t("cta.client.desc")}
                   </p>
-                  <Link href="/biens">
+                  <Link href={l("/biens")}>
                     <Button size="lg" variant="secondary" className="gap-3 rounded-full px-8 py-3 text-base font-medium">
-                      Parcourir les biens <ArrowRight className="h-5 w-5" />
+                      <span>{t("cta.client.button")}</span> <ArrowRight className="h-5 w-5" />
                     </Button>
                   </Link>
                 </>
               ) : (
                 <>
                   <h2 className="mb-4 font-bold text-primary-foreground" style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "clamp(1.8rem,4vw,2.6rem)" }}>
-                    Vous avez un bien à vendre ou à louer ?
+                    {t("cta.guest.title")}
                   </h2>
                   <p className="mb-10 text-lg leading-relaxed text-primary-foreground/80">
-                    Publiez votre annonce gratuitement et touchez des milliers de clients potentiels à travers tout le Maroc.
+                    {t("cta.guest.desc")}
                   </p>
-                  <Link href="/publier">
+                  <Link href={l("/publier")}>
                     <Button size="lg" variant="secondary" className="gap-3 rounded-full px-8 py-3 text-base font-medium">
-                      Publier une annonce <ArrowRight className="h-5 w-5" />
+                      <span>{t("cta.guest.button")}</span> <ArrowRight className="h-5 w-5" />
                     </Button>
                   </Link>
                 </>

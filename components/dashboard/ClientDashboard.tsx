@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
+import { useTranslations } from "next-intl" // 🌟 IMPORT NEXT-INTL
 import { Heart, Bell, MessageSquare, Loader2, MapPin, ChevronLeft, ChevronRight, User, Building2, Send, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { formatPrice } from "@/lib/data"
@@ -15,7 +16,12 @@ const API_URL = "http://127.0.0.1:8000";
 const ITEMS_PER_PAGE = 6; 
 
 export function ClientDashboard() {
+  const t = useTranslations("ClientDashboard") // 🌟 INITIALISATION TRADUCTION
   const router = useRouter();
+  const pathname = usePathname();
+  const currentLocale = pathname.split("/")[1] || "fr"
+  const l = (path: string) => `/${currentLocale}${path}`
+
   const [clientTab, setClientTab] = useState<ClientTab>("favoris")
   
   // États des données utilisateur
@@ -43,7 +49,6 @@ export function ClientDashboard() {
     const userStr = localStorage.getItem('user');
     if (userStr) setCurrentUser(JSON.parse(userStr));
 
-    // Toujours charger les alertes pour afficher le badge de notification sur l'onglet
     fetchAlerts();
 
     if (clientTab === "favoris") {
@@ -98,17 +103,14 @@ export function ClientDashboard() {
   }
 
   const handleAlertClick = async (alertId: number, propertyId: number | null, isRead: boolean) => {
-    // Si l'alerte n'est pas lue, on la marque comme lue dans la BDD
     if (!isRead) {
         try {
             await api.patch(`/alerts/${alertId}/read`);
             setAlerts(prev => prev.map(a => a.id === alertId ? { ...a, is_read: 1 } : a));
         } catch (err) { console.error("Erreur lecture alerte", err); }
     }
-    
-    // Redirige vers la propriété concernée s'il y en a une
     if (propertyId) {
-        router.push(`/biens/${propertyId}`);
+        router.push(l(`/biens/${propertyId}`));
     }
   }
 
@@ -128,7 +130,7 @@ export function ClientDashboard() {
 
   const unreadAlertsCount = alerts.filter(a => !a.is_read || a.is_read === 0).length;
 
-  // --- LOGIQUE MESSAGES (UNIFIÉE CLIENT) ---
+  // --- LOGIQUE MESSAGES ---
   const fetchSentMessages = async () => {
     setLoadingMsg(true)
     try {
@@ -147,9 +149,8 @@ export function ClientDashboard() {
     }
   }
 
-  // --- SUPPRESSION SÉCURISÉE ---
   const handleDeleteMessage = async (messageId: number) => {
-    if (!confirm("Voulez-vous vraiment supprimer ce message ?")) return;
+    if (!confirm(t("messages.confirmDelete"))) return;
     try {
       await api.delete(`/messages/${messageId}`);
       
@@ -160,24 +161,22 @@ export function ClientDashboard() {
           if (remainingForContact.length === 0) {
               setSelectedPropertyId(null);
           }
-          
           return filteredMessages;
       });
     } catch (err) {
       console.error("Erreur lors de la suppression du message", err);
-      alert("Impossible de supprimer le message.");
+      alert(t("messages.errorDelete"));
     }
   }
 
-  // --- LOGIQUE DE CHAT POUR LE CLIENT ---
   const groupedConversations = messages.reduce((acc, msg) => {
       const propId = msg.property_id || "deleted";
       
       if (!acc[propId]) {
           acc[propId] = {
               property_id: propId,
-              property_title: msg.property?.title || "Annonce supprimée/inconnue",
-              agency_name: "Agence / Propriétaire",
+              property_title: msg.property?.title || t("messages.deletedProperty"),
+              agency_name: t("messages.agencyOwner"),
               latestMessageDate: new Date(msg.created_at),
               messages: []
           };
@@ -227,13 +226,12 @@ export function ClientDashboard() {
         setReplyText("");
     } catch (e: any) {
         console.error("Erreur détaillée:", e.response?.data || e.message);
-        alert("Erreur : Impossible d'envoyer.");
+        alert(t("messages.errorSend"));
     } finally {
         setSendingReply(false);
     }
   }
 
-  // Variables pour la pagination
   const totalPages = Math.ceil(favorites.length / ITEMS_PER_PAGE)
   const currentFavorites = favorites.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
 
@@ -261,9 +259,9 @@ export function ClientDashboard() {
       {/* 🌟 ONGLET NAVIGATION 🌟 */}
       <div className="mb-6 flex gap-2 overflow-x-auto rounded-lg border border-border bg-card p-1.5 custom-scrollbar">
         {[
-          { key: "favoris", label: "Mes Favoris", icon: Heart },
-          { key: "alertes", label: "Alertes", icon: Bell, badge: unreadAlertsCount }, // Ajout du badge
-          { key: "messages", label: "Messages", icon: MessageSquare },
+          { key: "favoris", label: t("tabs.favorites"), icon: Heart },
+          { key: "alertes", label: t("tabs.alerts"), icon: Bell, badge: unreadAlertsCount },
+          { key: "messages", label: t("tabs.messages"), icon: MessageSquare },
         ].map((tab) => {
           const Icon = tab.icon
           return (
@@ -282,7 +280,6 @@ export function ClientDashboard() {
               <Icon className="h-4 w-4 shrink-0" />
               <span>{tab.label}</span>
 
-              {/* Badge Rouge pour les Alertes non lues */}
               {tab.badge !== undefined && tab.badge > 0 && (
                   <span className="absolute top-1 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
                       {tab.badge}
@@ -298,7 +295,9 @@ export function ClientDashboard() {
             {loadingFav ? (
                 <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
             ) : favorites.length === 0 ? (
-                <div className="text-center py-12 border border-dashed rounded-xl text-muted-foreground bg-card shadow-sm">Vous n'avez pas encore de favoris.</div>
+                <div className="text-center py-12 border border-dashed rounded-xl text-muted-foreground bg-card shadow-sm">
+                  {t("favorites.empty")}
+                </div>
             ) : (
                 <div className="flex flex-col gap-4">
                     {currentFavorites.map((p) => {
@@ -306,12 +305,12 @@ export function ClientDashboard() {
                         return (
                             <div key={p.id} className="flex flex-col sm:flex-row gap-4 rounded-xl border border-border bg-card p-4 transition-all shadow-sm hover:shadow-md group relative">
                                 
-                                <Link href={`/biens/${p.id}`} className="relative h-48 sm:h-32 w-full sm:w-48 shrink-0 overflow-hidden rounded-lg bg-secondary block hover:opacity-90">
+                                <Link href={l(`/biens/${p.id}`)} className="relative h-48 sm:h-32 w-full sm:w-48 shrink-0 overflow-hidden rounded-lg bg-secondary block hover:opacity-90">
                                     <Image src={imgUrl} alt={p.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" unoptimized />
                                 </Link>
                                 
                                 <div className="flex-1 min-w-0 flex flex-col justify-center">
-                                    <Link href={`/biens/${p.id}`} className="text-lg font-semibold hover:text-primary hover:underline truncate mb-1 pr-12 sm:pr-0">
+                                    <Link href={l(`/biens/${p.id}`)} className="text-lg font-semibold hover:text-primary hover:underline truncate mb-1 pr-12 sm:pr-0">
                                         {p.title}
                                     </Link>
                                     <div className="text-sm text-muted-foreground flex items-center gap-1.5 mb-2">
@@ -327,7 +326,7 @@ export function ClientDashboard() {
                                         size="icon" 
                                         className="rounded-full bg-white/90 text-red-500 hover:bg-red-50 hover:text-red-600 shadow-sm transition-transform hover:scale-110 h-10 w-10 border-red-100"
                                         onClick={(e) => { e.preventDefault(); removeFavorite(p.id); }}
-                                        title="Retirer des favoris"
+                                        title={t("favorites.remove")}
                                     >
                                         <Heart className="h-5 w-5 fill-current" />
                                     </Button>
@@ -340,7 +339,12 @@ export function ClientDashboard() {
                     {totalPages > 1 && (
                         <div className="mt-6 flex items-center justify-center gap-2">
                             <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
-                            <span className="text-sm px-2 text-muted-foreground">Page {currentPage} sur {totalPages}</span>
+                            <span className="text-sm px-2 text-muted-foreground">
+                              <span>{t("pagination.page")} </span>
+                              <span>{currentPage}</span>
+                              <span> {t("pagination.of")} </span>
+                              <span>{totalPages}</span>
+                            </span>
                             <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages}><ChevronRight className="h-4 w-4" /></Button>
                         </div>
                     )}
@@ -357,7 +361,7 @@ export function ClientDashboard() {
           ) : alerts.length === 0 ? (
               <div className="text-center py-12 border border-dashed rounded-xl text-muted-foreground bg-card shadow-sm">
                   <Bell className="h-10 w-10 mx-auto mb-3 opacity-20" />
-                  Vous n'avez aucune alerte pour le moment.
+                  <span>{t("alerts.empty")}</span>
               </div>
           ) : (
               <>
@@ -382,7 +386,7 @@ export function ClientDashboard() {
                                   {alert.message}
                               </p>
                               <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                                  {new Date(alert.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                  {new Date(alert.created_at).toLocaleDateString(currentLocale === 'en' ? 'en-US' : currentLocale === 'ar' ? 'ar-MA' : 'fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                               </p>
                           </div>
 
@@ -391,18 +395,22 @@ export function ClientDashboard() {
                               size="icon" 
                               className="shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                               onClick={() => handleDeleteAlert(alert.id)}
-                              title="Supprimer l'alerte"
+                              title={t("alerts.delete")}
                           >
                               <Trash2 className="h-4 w-4" />
                           </Button>
                       </div>
                   ))}
 
-                  {/* Pagination Alertes */}
                   {totalAlertPages > 1 && (
                       <div className="mt-4 flex items-center justify-center gap-2">
                           <Button variant="outline" size="icon" onClick={() => setAlertPage(prev => Math.max(prev - 1, 1))} disabled={alertPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
-                          <span className="text-sm px-2 text-muted-foreground">Page {alertPage} sur {totalAlertPages}</span>
+                          <span className="text-sm px-2 text-muted-foreground">
+                            <span>{t("pagination.page")} </span>
+                            <span>{alertPage}</span>
+                            <span> {t("pagination.of")} </span>
+                            <span>{totalAlertPages}</span>
+                          </span>
                           <Button variant="outline" size="icon" onClick={() => setAlertPage(prev => Math.min(prev + 1, totalAlertPages))} disabled={alertPage === totalAlertPages}><ChevronRight className="h-4 w-4" /></Button>
                       </div>
                   )}
@@ -418,12 +426,16 @@ export function ClientDashboard() {
           {loadingMsg ? (
             <div className="flex-1 flex justify-center items-center"><Loader2 className="animate-spin text-primary" /></div>
           ) : conversationList.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center text-muted-foreground">Vous n'avez envoyé aucun message.</div>
+            <div className="flex-1 flex items-center justify-center text-muted-foreground">
+              {t("messages.empty")}
+            </div>
           ) : (
             <>
               {/* LISTE DES CONVERSATIONS */}
               <div className={`w-full md:w-1/3 border-r border-border flex flex-col bg-card absolute md:relative inset-0 z-20 md:z-0 ${selectedPropertyId ? 'hidden md:flex' : 'flex'}`}>
-                <div className="p-4 border-b border-border bg-secondary/30 font-semibold shrink-0">Mes discussions</div>
+                <div className="p-4 border-b border-border bg-secondary/30 font-semibold shrink-0">
+                  {t("messages.myDiscussions")}
+                </div>
                 <div className="overflow-y-auto flex-1 p-2 space-y-1">
                   {conversationList.map((contact: any) => (
                     <button
@@ -438,7 +450,10 @@ export function ClientDashboard() {
                       </div>
                       <div className="flex-1 min-w-0 overflow-hidden">
                         <div className="font-semibold text-sm truncate text-foreground">{contact.property_title}</div>
-                        <div className="text-[10px] text-primary mb-1">Avec : {contact.agency_name}</div>
+                        <div className="text-[10px] text-primary mb-1">
+                          <span>{t("messages.with")} </span>
+                          <span>{contact.agency_name}</span>
+                        </div>
                         <div className="text-xs text-muted-foreground truncate">
                           {contact.messages[contact.messages.length - 1].message}
                         </div>
@@ -462,20 +477,21 @@ export function ClientDashboard() {
                         </div>
                         <div className="min-w-0 pr-2">
                           <h3 className="font-semibold text-foreground truncate">{activeThread.agency_name}</h3>
-                          <p className="text-xs text-muted-foreground truncate">Annonce : {activeThread.property_title}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            <span>{t("messages.ad")} </span>
+                            <span>{activeThread.property_title}</span>
+                          </p>
                         </div>
                       </div>
-                      <Link href={`/biens/${selectedPropertyId}`}>
-                        <Button variant="outline" size="sm" className="hidden sm:flex shrink-0">Voir l'annonce</Button>
+                      <Link href={l(`/biens/${selectedPropertyId}`)}>
+                        <Button variant="outline" size="sm" className="hidden sm:flex shrink-0">
+                          {t("messages.viewAd")}
+                        </Button>
                       </Link>
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col">
                       {activeChatMessages.map((msg: any, index: number) => {
-                          
-                          // 🌟 CORRECTION INFAILLIBLE DES COULEURS 🌟
-                          // L'agence et l'admin répondent TOUJOURS avec le nom "Agence", "Propriétaire" ou "Admin".
-                          // Donc si ce N'EST PAS l'un de ces 3 noms, c'est que c'est TOI (le Client).
                           const isAgencyOrAdmin = msg.name === "Agence" || msg.name === "Propriétaire" || msg.name === "Admin";
                           const isMe = !isAgencyOrAdmin;
                           
@@ -512,7 +528,7 @@ export function ClientDashboard() {
                                 </div>
 
                                 <span className="text-[10px] text-muted-foreground mt-1 mx-1">
-                                    {new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                    {new Date(msg.created_at).toLocaleTimeString(currentLocale === 'en' ? 'en-US' : currentLocale === 'ar' ? 'ar-MA' : 'fr-FR', { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                             </div>
                           )
@@ -523,7 +539,7 @@ export function ClientDashboard() {
                         <form onSubmit={(e) => { e.preventDefault(); handleSendReply(); }} className="flex items-center gap-2">
                             <input 
                                 type="text" 
-                                placeholder="Écrire un message..." 
+                                placeholder={t("messages.placeholder")}
                                 className="flex-1 rounded-full border border-border bg-secondary/50 px-4 py-3 md:py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary" 
                                 value={replyText} 
                                 onChange={(e) => setReplyText(e.target.value)} 
@@ -537,7 +553,7 @@ export function ClientDashboard() {
                 ) : (
                   <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-6 text-center hidden md:flex">
                     <MessageSquare className="h-12 w-12 mb-4 opacity-20" />
-                    <p>Sélectionnez une discussion pour afficher les messages.</p>
+                    <p>{t("messages.selectThread")}</p>
                   </div>
                 )}
               </div>

@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { usePathname } from "next/navigation"
+import { useTranslations } from "next-intl" // 🌟 IMPORT NEXT-INTL
 import { 
   Building2, Eye, Plus, Edit, Trash2, BarChart3, 
   MessageSquare, Loader2, MapPin, Heart, ChevronLeft, 
   ChevronRight, User, Send, TrendingUp, Home, Activity,
-  CheckCircle2, Clock, PieChart, Bell, Phone // 🌟 Ajout de Phone ici
+  CheckCircle2, Clock, PieChart, Bell, Phone 
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -19,14 +21,20 @@ type AgenceTab = "annonces" | "messages" | "statistiques" | "favoris" | "notific
 const API_URL = "http://127.0.0.1:8000";
 const ITEMS_PER_PAGE = 6;
 
-function Pagination({ currentPage, totalPages, onPageChange }: { currentPage: number; totalPages: number; onPageChange: (page: number) => void }) {
+// 🌟 Modification pour accepter les traductions
+function Pagination({ currentPage, totalPages, onPageChange, textPage, textOf }: { currentPage: number; totalPages: number; onPageChange: (page: number) => void; textPage: string; textOf: string }) {
   if (totalPages <= 1) return null;
   return (
     <div className="mt-6 flex items-center justify-center gap-2">
       <Button variant="outline" size="icon" onClick={() => onPageChange(Math.max(currentPage - 1, 1))} disabled={currentPage === 1}>
         <ChevronLeft className="h-4 w-4" />
       </Button>
-      <span className="text-sm px-2 text-muted-foreground">Page {currentPage} sur {totalPages}</span>
+      <span className="text-sm px-2 text-muted-foreground">
+        <span>{textPage} </span>
+        <span>{currentPage}</span>
+        <span> {textOf} </span>
+        <span>{totalPages}</span>
+      </span>
       <Button variant="outline" size="icon" onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))} disabled={currentPage === totalPages}>
         <ChevronRight className="h-4 w-4" />
       </Button>
@@ -35,6 +43,13 @@ function Pagination({ currentPage, totalPages, onPageChange }: { currentPage: nu
 }
 
 export function AgencyDashboard() {
+  const t = useTranslations("AgencyDashboard") // 🌟 INITIALISATION TRADUCTION
+  const pathname = usePathname()
+  
+  // 🌟 GESTION DE LA LANGUE POUR LES REDIRECTIONS & DATES
+  const currentLocale = pathname.split("/")[1] || "fr"
+  const l = (path: string) => `/${currentLocale}${path}`
+
   const [agenceTab, setAgenceTab] = useState<AgenceTab>("annonces")
   const [currentUser, setCurrentUser] = useState<any>(null)
   
@@ -124,7 +139,7 @@ export function AgencyDashboard() {
   }
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Voulez-vous vraiment supprimer cette annonce ?")) return
+    if (!confirm(t("adsTab.confirmDelete"))) return
     try {
       await api.delete(`/properties/${id}`)
       setMyProperties(prev => {
@@ -132,11 +147,11 @@ export function AgencyDashboard() {
         setTotalViews(updated.reduce((sum: number, p: any) => sum + (p.views_count || 0), 0))
         return updated
       })
-    } catch (err) { alert("Impossible de supprimer.") }
+    } catch (err) { alert(t("adsTab.errorDelete")) }
   }
 
   const handleDeleteMyMessage = async (messageId: number) => {
-    if (!confirm("Voulez-vous vraiment supprimer ce message ?")) return;
+    if (!confirm(t("messagesTab.confirmDelete"))) return;
     try {
       await api.delete(`/messages/${messageId}`);
       setAllMyMessages(prev => {
@@ -145,7 +160,7 @@ export function AgencyDashboard() {
         if (!threadStillExists) setSelectedThreadId(null);
         return filtered;
       });
-    } catch (err) { alert("Impossible de supprimer le message."); }
+    } catch (err) { alert(t("messagesTab.errorDelete")); }
   }
 
   const groupedConversations = allMyMessages.reduce((acc, msg) => {
@@ -158,8 +173,8 @@ export function AgencyDashboard() {
       let dEmail = "";
 
       if (amIVisitor) {
-          dName = `Annonce : ${msg.property?.title || 'Bien #' + msg.property_id}`;
-          dEmail = "Discussion avec l'annonceur";
+          dName = `${t("messagesTab.ad")} ${msg.property?.title || '#' + msg.property_id}`;
+          dEmail = t("messagesTab.discussionOwner");
       } else {
           dName = (msg.name !== 'Propriétaire' && msg.name !== 'Agence' && msg.name !== 'Admin') ? msg.name : 'Client';
           dEmail = msg.email;
@@ -202,7 +217,7 @@ export function AgencyDashboard() {
       fetchUnifiedMessages();
       setReplyText("");
     } catch (e: any) {
-      alert("Erreur lors de l'envoi.");
+      alert(t("messagesTab.errorSend"));
     } finally { setSendingReply(false); }
   }
 
@@ -243,16 +258,18 @@ export function AgencyDashboard() {
       {/* 🌟 SIDEBAR (Menu) 🌟 */}
       <aside className="w-full lg:w-64 shrink-0">
         <div className="sticky top-20 flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-visible rounded-2xl border border-border bg-card p-3 shadow-sm custom-scrollbar">
-          <h3 className="hidden lg:block px-3 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Espace Agence</h3>
+          <h3 className="hidden lg:block px-3 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+            {t("sidebar.title")}
+          </h3>
 
           {[
-            { key: "annonces", label: "Mes annonces", icon: Home },
-            { key: "messages", label: "Mes Messages", icon: MessageSquare, count: conversationList.length },
-            { key: "favoris", label: "Mes Favoris", icon: Heart },
-            { key: "notifications", label: "Activités", icon: Bell, count: agencyNotifications.length },
+            { key: "annonces", label: t("sidebar.ads"), icon: Home },
+            { key: "messages", label: t("sidebar.messages"), icon: MessageSquare, count: conversationList.length },
+            { key: "favoris", label: t("sidebar.favorites"), icon: Heart },
+            { key: "notifications", label: t("sidebar.activities"), icon: Bell, count: agencyNotifications.length },
             { type: "divider" },
-            { type: "title", label: "Performances" },
-            { key: "statistiques", label: "Mes Statistiques", icon: Activity },
+            { type: "title", label: t("sidebar.performance") },
+            { key: "statistiques", label: t("sidebar.stats"), icon: Activity },
           ].map((tab, idx) => {
             if (tab.type === "divider") return <div key={`div-${idx}`} className="hidden lg:block h-px w-full bg-border my-2" />
             if (tab.type === "title") return <h3 key={`title-${idx}`} className="hidden lg:block px-3 pt-4 pb-2 text-xs font-bold uppercase tracking-wider text-primary">{tab.label}</h3>
@@ -270,7 +287,7 @@ export function AgencyDashboard() {
               >
                 <div className="flex items-center gap-3">
                   {Icon && <Icon className={`h-4 w-4 ${isActive ? "text-primary-foreground" : "text-muted-foreground"}`} />} 
-                  {tab.label}
+                  <span>{tab.label}</span>
                 </div>
                 {tab.count !== undefined && tab.count > 0 && (
                     <span className={`flex h-5 items-center justify-center rounded-full px-2 text-[10px] font-bold ${
@@ -289,10 +306,10 @@ export function AgencyDashboard() {
         {/* STATS RAPIDES */}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {[
-            { label: "Annonces", value: myProperties.length.toString(), icon: Building2 },
-            { label: "Contacts", value: totalContacts.toString(), icon: MessageSquare },
-            { label: "J'aimes reçus", value: agencyNotifications.length.toString(), icon: Heart }, 
-            { label: "Vues", value: totalViews.toString(), icon: Eye },
+            { label: t("quickStats.ads"), value: myProperties.length.toString(), icon: Building2 },
+            { label: t("quickStats.contacts"), value: totalContacts.toString(), icon: MessageSquare },
+            { label: t("quickStats.likes"), value: agencyNotifications.length.toString(), icon: Heart }, 
+            { label: t("quickStats.views"), value: totalViews.toString(), icon: Eye },
           ].map((stat) => (
             <div key={stat.label} className="rounded-xl border border-border bg-card p-4 shadow-sm">
               <div className="flex items-center justify-between mb-2">
@@ -304,57 +321,58 @@ export function AgencyDashboard() {
           ))}
         </div>
 
-        {/* 🌟 ONGLET ANNONCES (EN LIGNE) 🌟 */}
+        {/* 🌟 ONGLET ANNONCES 🌟 */}
         {agenceTab === "annonces" && (
           <div className="flex flex-col gap-3">
             <div className="mb-2 flex justify-between items-center">
-              <h2 className="text-lg font-semibold font-serif">Vos propres annonces</h2>
-              <Link href="/publier"><Button size="sm" className="gap-2"><Plus className="h-4 w-4" /> Publier</Button></Link>
+              <h2 className="text-lg font-semibold font-serif">{t("adsTab.title")}</h2>
+              <Link href={l("/publier")}><Button size="sm" className="gap-2"><Plus className="h-4 w-4" /> <span>{t("adsTab.publish")}</span></Button></Link>
             </div>
             
             {loadingProps ? (
               <div className="flex justify-center py-10"><Loader2 className="animate-spin text-primary" /></div>
             ) : paginatedProps.length === 0 ? (
-              <div className="text-center py-10 border border-dashed rounded-xl text-muted-foreground bg-card shadow-sm">Aucune annonce.</div>
+              <div className="text-center py-10 border border-dashed rounded-xl text-muted-foreground bg-card shadow-sm">{t("adsTab.empty")}</div>
             ) : (
               <div className="flex flex-col gap-5">
                 {paginatedProps.map((p) => (
                   <div key={p.id} className="flex flex-col sm:flex-row gap-4 rounded-xl border border-border bg-card p-4 transition-all shadow-sm hover:shadow-md group">
                     
-                    <Link href={`/biens/${p.id}`} className="relative h-48 sm:h-32 w-full sm:w-48 shrink-0 overflow-hidden rounded-lg bg-secondary block hover:opacity-90">
+                    <Link href={l(`/biens/${p.id}`)} className="relative h-48 sm:h-32 w-full sm:w-48 shrink-0 overflow-hidden rounded-lg bg-secondary block hover:opacity-90">
                       <Image src={getImageUrl(p.images)} alt={p.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" unoptimized />
                       <Badge variant={p.status === "publié" ? "default" : "secondary"} className={`absolute top-2 left-2 shadow-sm capitalize ${p.status === 'en attente' ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''}`}>
-                        {p.status}
+                        {/* On tente de traduire le statut (ex: status.publié) */}
+                        {t(`status.${p.status}`) || p.status}
                       </Badge>
                     </Link>
                     
                     <div className="flex-1 min-w-0 flex flex-col justify-center">
-                      <Link href={`/biens/${p.id}`} className="text-lg font-semibold hover:text-primary hover:underline truncate mb-1">
+                      <Link href={l(`/biens/${p.id}`)} className="text-lg font-semibold hover:text-primary hover:underline truncate mb-1">
                         {p.title}
                       </Link>
                       <div className="text-sm text-muted-foreground flex items-center gap-3 mb-2">
                         <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {p.city}</span>
                         <span className="flex items-center gap-1 text-primary/80 font-medium">
-                          <Eye className="h-3.5 w-3.5" /> {p.views_count || 0} vues
+                          <Eye className="h-3.5 w-3.5" /> <span>{p.views_count || 0}</span> <span>{t("adsTab.views")}</span>
                         </span>
                       </div>
                       <p className="font-bold text-primary mt-auto">{formatPrice(p.price, p.transaction_type)}</p>
                     </div>
 
                     <div className="flex sm:flex-col gap-3 shrink-0 mt-2 sm:mt-0 justify-center">
-                      <Link href={`/modifier/${p.id}`} className="flex-1 sm:flex-none">
+                      <Link href={l(`/modifier/${p.id}`)} className="flex-1 sm:flex-none">
                         <Button variant="outline" className="w-full h-11 sm:h-10 text-primary border-primary/30 hover:bg-primary/10 gap-2">
-                          <Edit className="h-4 w-4" /> <span className="sm:hidden xl:inline">Modifier</span>
+                          <Edit className="h-4 w-4" /> <span className="sm:hidden xl:inline">{t("adsTab.edit")}</span>
                         </Button>
                       </Link>
                       <Button variant="outline" className="flex-1 sm:flex-none h-11 sm:h-10 gap-2 text-destructive border-destructive/30 hover:bg-destructive/10" onClick={(e) => { e.preventDefault(); handleDelete(p.id); }}>
-                        <Trash2 className="h-4 w-4" /> <span className="sm:hidden xl:inline">Supprimer</span>
+                        <Trash2 className="h-4 w-4" /> <span className="sm:hidden xl:inline">{t("adsTab.delete")}</span>
                       </Button>
                     </div>
 
                   </div>
                 ))}
-                <Pagination currentPage={currentPropPage} totalPages={totalPropPages} onPageChange={setCurrentPropPage} />
+                <Pagination currentPage={currentPropPage} totalPages={totalPropPages} onPageChange={setCurrentPropPage} textPage={t("pagination.page")} textOf={t("pagination.of")} />
               </div>
             )}
           </div>
@@ -366,7 +384,7 @@ export function AgencyDashboard() {
             {loadingFavs ? (
               <div className="flex justify-center py-10"><Loader2 className="animate-spin text-primary" /></div>
             ) : favorites.length === 0 ? (
-              <div className="text-center py-12 border border-dashed rounded-xl text-muted-foreground bg-card shadow-sm">Aucun favori.</div>
+              <div className="text-center py-12 border border-dashed rounded-xl text-muted-foreground bg-card shadow-sm">{t("favoritesTab.empty")}</div>
             ) : (
               <div className="flex flex-col gap-6">
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -377,7 +395,7 @@ export function AgencyDashboard() {
                         <button onClick={(e) => { e.preventDefault(); removeFavorite(p.id); }} className="absolute right-3 top-3 rounded-full bg-white p-1.5 text-red-500 z-20 shadow-sm transition-transform hover:scale-110">
                           <Heart className="h-4 w-4 fill-current" />
                         </button>
-                        <Link href={`/biens/${p.id}`} className="absolute inset-0 z-10" />
+                        <Link href={l(`/biens/${p.id}`)} className="absolute inset-0 z-10" />
                       </div>
                       <div className="p-4">
                         <h3 className="font-semibold truncate group-hover:text-primary transition-colors">{p.title}</h3>
@@ -387,17 +405,20 @@ export function AgencyDashboard() {
                     </div>
                   ))}
                 </div>
-                <Pagination currentPage={currentFavPage} totalPages={totalFavPages} onPageChange={setCurrentFavPage} />
+                <Pagination currentPage={currentFavPage} totalPages={totalFavPages} onPageChange={setCurrentFavPage} textPage={t("pagination.page")} textOf={t("pagination.of")} />
               </div>
             )}
           </div>
         )}
 
-        {/* 🌟 ONGLET NOTIFICATIONS (Activités) AVEC TÉLÉPHONE 🌟 */}
+        {/* 🌟 ONGLET NOTIFICATIONS 🌟 */}
         {agenceTab === "notifications" && (
             <div className="flex flex-col gap-3">
                 <div className="mb-2 flex justify-between items-center">
-                    <h2 className="text-lg font-semibold font-serif">Activité sur vos annonces ({agencyNotifications.length})</h2>
+                    <h2 className="text-lg font-semibold font-serif">
+                      <span>{t("notificationsTab.title")} </span>
+                      <span>({agencyNotifications.length})</span>
+                    </h2>
                 </div>
 
                 {loadingNotifs ? (
@@ -405,7 +426,7 @@ export function AgencyDashboard() {
                 ) : paginatedNotifs.length === 0 ? (
                     <div className="text-center py-12 border border-dashed rounded-xl text-muted-foreground bg-card shadow-sm flex flex-col items-center justify-center gap-3">
                         <Heart className="h-8 w-8 text-muted-foreground opacity-30" />
-                        <p>Personne n'a encore ajouté vos biens en favoris.</p>
+                        <p>{t("notificationsTab.empty")}</p>
                     </div>
                 ) : (
                     <div className="flex flex-col gap-3">
@@ -417,10 +438,10 @@ export function AgencyDashboard() {
                                     </div>
                                     <div className="flex flex-col">
                                         <p className="text-sm text-foreground">
-                                            <span className="font-semibold">{notif.user_name}</span> a ajouté votre annonce à ses favoris.
+                                            <span className="font-semibold">{notif.user_name}</span> <span>{t("notificationsTab.addedToFav")}</span>
                                         </p>
                                         <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mt-1">
-                                            <Link href={`/biens/${notif.property_id}`} className="text-sm font-medium text-primary hover:underline flex items-center gap-1">
+                                            <Link href={l(`/biens/${notif.property_id}`)} className="text-sm font-medium text-primary hover:underline flex items-center gap-1">
                                                 <Building2 className="h-3.5 w-3.5" />
                                                 {notif.property_title}
                                             </Link>
@@ -430,7 +451,6 @@ export function AgencyDashboard() {
                                                 <User className="h-3 w-3" /> {notif.user_email}
                                             </span>
                                             
-                                            {/* 🌟 AFFICHAGE DU TÉLÉPHONE ICI 🌟 */}
                                             {notif.user_phone && (
                                               <>
                                                 <span className="hidden sm:inline text-muted-foreground">•</span>
@@ -443,14 +463,14 @@ export function AgencyDashboard() {
                                     </div>
                                 </div>
                                 <div className="text-xs text-muted-foreground whitespace-nowrap self-end sm:self-center bg-secondary px-2 py-1 rounded-md">
-                                    {new Date(notif.created_at).toLocaleDateString('fr-FR', {
+                                    {new Date(notif.created_at).toLocaleDateString(currentLocale === 'en' ? 'en-US' : currentLocale === 'ar' ? 'ar-MA' : 'fr-FR', {
                                         day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
                                     })}
                                 </div>
                             </div>
                         ))}
 
-                        <Pagination currentPage={currentNotifPage} totalPages={totalNotifPages} onPageChange={setCurrentNotifPage} />
+                        <Pagination currentPage={currentNotifPage} totalPages={totalNotifPages} onPageChange={setCurrentNotifPage} textPage={t("pagination.page")} textOf={t("pagination.of")} />
                     </div>
                 )}
             </div>
@@ -462,7 +482,9 @@ export function AgencyDashboard() {
             
             {/* Liste des conversations */}
             <div className={`w-full md:w-1/3 border-r border-border flex flex-col bg-card absolute md:relative inset-0 z-20 md:z-0 ${selectedThreadId ? 'hidden md:flex' : 'flex'}`}>
-              <div className="p-4 border-b border-border bg-secondary/30 font-semibold shrink-0">Conversations</div>
+              <div className="p-4 border-b border-border bg-secondary/30 font-semibold shrink-0">
+                {t("messagesTab.conversations")}
+              </div>
               <div className="overflow-y-auto flex-1 p-2 space-y-1">
                 {conversationList.map((contact: any) => (
                   <button key={contact.threadId} onClick={() => setSelectedThreadId(contact.threadId)}
@@ -503,7 +525,6 @@ export function AgencyDashboard() {
                   <div className="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col">
                     {activeChatMessages.map((msg: any, index: number) => {
                       const amIVisitor = currentUser && activeThread.contact_email === currentUser.email;
-                      
                       let isMe = false;
 
                       if (amIVisitor) {
@@ -516,7 +537,7 @@ export function AgencyDashboard() {
                         <div key={`${msg.id}-${index}`} className={`flex flex-col group max-w-[85%] md:max-w-[75%] ${isMe ? 'self-end items-end' : 'self-start items-start'}`}>
                           {!isMe && msg.property && amIVisitor === false && (
                             <span className="text-[10px] text-muted-foreground mb-1 ml-1 flex items-center gap-1">
-                              <Building2 className="h-3 w-3" /> Concernant : {msg.property.title}
+                              <Building2 className="h-3 w-3" /> <span>{t("messagesTab.aboutAd")} </span> <span>{msg.property.title}</span>
                             </span>
                           )}
                           <div className="flex items-center gap-2">
@@ -535,7 +556,7 @@ export function AgencyDashboard() {
                             )}
                           </div>
                           <span className="text-[10px] text-muted-foreground mt-1 mx-1">
-                            {new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(msg.created_at).toLocaleTimeString(currentLocale === 'en' ? 'en-US' : currentLocale === 'ar' ? 'ar-MA' : 'fr-FR', { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
                       )
@@ -544,7 +565,7 @@ export function AgencyDashboard() {
 
                   <div className="p-3 bg-card border-t border-border shrink-0 mt-auto">
                     <form onSubmit={(e) => { e.preventDefault(); handleSendReply(); }} className="flex items-center gap-2">
-                      <input type="text" placeholder="Écrire un message..." className="flex-1 rounded-full border border-border bg-secondary/50 px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary" value={replyText} onChange={(e) => setReplyText(e.target.value)} />
+                      <input type="text" placeholder={t("messagesTab.placeholder")} className="flex-1 rounded-full border border-border bg-secondary/50 px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary" value={replyText} onChange={(e) => setReplyText(e.target.value)} />
                       <Button type="submit" size="icon" className="rounded-full shrink-0" disabled={!replyText.trim() || sendingReply}>
                         {sendingReply ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 ml-0.5" />}
                       </Button>
@@ -554,24 +575,24 @@ export function AgencyDashboard() {
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-6 text-center hidden md:flex">
                   <MessageSquare className="h-12 w-12 mb-4 opacity-20" />
-                  <p>Sélectionnez une conversation pour afficher les messages.</p>
+                  <p>{t("messagesTab.empty")}</p>
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* 🌟 ONGLET STATISTIQUES (SANS DOUBLONS) 🌟 */}
+        {/* 🌟 ONGLET STATISTIQUES 🌟 */}
         {agenceTab === "statistiques" && (
           <div className="flex flex-col gap-6">
 
             {/* Nouveaux KPIs Pertinents */}
             <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
               {[
-                { label: "Taux de Contact", value: `${conversionRate}%`, icon: TrendingUp, sub: "Vues → Messages" },
-                { label: "Moyenne Vues", value: avgViews, icon: Activity, sub: "Vues / Annonce" },
-                { label: "Biens en ligne", value: publishedCount.toString(), icon: CheckCircle2, sub: "Publiés" },
-                { label: "En Modération", value: pendingCount.toString(), icon: Clock, sub: "En attente" },
+                { label: t("statsTab.contactRate"), value: `${conversionRate}%`, icon: TrendingUp, sub: t("statsTab.contactRateSub") },
+                { label: t("statsTab.avgViews"), value: avgViews, icon: Activity, sub: t("statsTab.avgViewsSub") },
+                { label: t("statsTab.online"), value: publishedCount.toString(), icon: CheckCircle2, sub: t("statsTab.onlineSub") },
+                { label: t("statsTab.pending"), value: pendingCount.toString(), icon: Clock, sub: t("statsTab.pendingSub") },
               ].map((kpi) => (
                 <div key={kpi.label} className="rounded-xl border border-border bg-card p-5 shadow-sm">
                   <div className="flex items-center justify-between mb-3">
@@ -589,12 +610,12 @@ export function AgencyDashboard() {
               {/* Top Annonces */}
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                 <h3 className="mb-5 font-semibold text-foreground flex items-center gap-2">
-                  <Eye className="h-4 w-4 text-primary" /> Vos annonces les plus vues
+                  <Eye className="h-4 w-4 text-primary" /> {t("statsTab.topAdsTitle")}
                 </h3>
                 {loadingProps ? (
                   <div className="flex justify-center py-6"><Loader2 className="animate-spin text-primary" /></div>
                 ) : topProperties.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">Aucune annonce.</p>
+                  <p className="text-sm text-muted-foreground text-center py-6">{t("statsTab.emptyTopAds")}</p>
                 ) : (
                   <div className="flex flex-col gap-4">
                     {topProperties.map((p) => {
@@ -608,7 +629,7 @@ export function AgencyDashboard() {
                             </div>
                           </div>
                           <span className="w-16 text-right text-sm font-semibold text-muted-foreground shrink-0">
-                            {p.views_count || 0} vue{(p.views_count || 0) !== 1 ? 's' : ''}
+                            <span>{p.views_count || 0}</span> <span>{(p.views_count || 0) !== 1 ? t("statsTab.viewPlural") : t("statsTab.viewSingular")}</span>
                           </span>
                         </div>
                       )
@@ -620,15 +641,15 @@ export function AgencyDashboard() {
               {/* Répartition Portefeuille */}
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                 <h3 className="mb-5 font-semibold text-foreground flex items-center gap-2">
-                  <PieChart className="h-4 w-4 text-primary" /> Répartition du portefeuille
+                  <PieChart className="h-4 w-4 text-primary" /> {t("statsTab.portfolioTitle")}
                 </h3>
                 <div className="space-y-4">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Biens en Vente</span>
+                    <span className="text-muted-foreground">{t("statsTab.forSale")}</span>
                     <span className="font-bold">{ventesCount}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Biens en Location</span>
+                    <span className="text-muted-foreground">{t("statsTab.forRent")}</span>
                     <span className="font-bold">{locationsCount}</span>
                   </div>
                   
@@ -637,8 +658,8 @@ export function AgencyDashboard() {
                     <div style={{width: `${myProperties.length ? (locationsCount/myProperties.length)*100 : 0}%`}} className="bg-blue-400 h-full transition-all duration-500"/>
                   </div>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
-                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary block"></span> Vente</span>
-                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400 block"></span> Location</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary block"></span> {t("statsTab.sale")}</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400 block"></span> {t("statsTab.rent")}</span>
                   </div>
                 </div>
               </div>

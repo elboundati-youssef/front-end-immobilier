@@ -2,9 +2,18 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { useTranslations } from "next-intl" // 🌟 IMPORT NEXT-INTL
 import { Home, Phone, Mail, MapPin } from "lucide-react"
 
 export function Footer() {
+  const t = useTranslations("Footer") // 🌟 INITIALISATION TRADUCTION
+  const pathname = usePathname()
+  
+  // 🌟 GESTION DE LA LANGUE ACTUELLE POUR LES LIENS
+  const currentLocale = pathname.split("/")[1] || "fr"
+  const l = (path: string) => `/${currentLocale}${path}`
+
   const [userRole, setUserRole] = useState<string | null>(null)
 
   useEffect(() => {
@@ -23,104 +32,111 @@ export function Footer() {
   return (
     <footer className="border-t border-border bg-card">
       <div className="mx-auto max-w-7xl px-4 py-12 lg:px-8">
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <Link href="/" className="mb-4 flex items-center gap-2">
+        {/* 🌟 AJOUT DE 'text-center md:text-left' ICI */}
+        <div className="grid gap-10 text-center md:grid-cols-2 md:text-left lg:grid-cols-4 lg:gap-8">
+          
+          {/* Colonne 1 : À propos */}
+          {/* 🌟 AJOUT DE 'flex flex-col items-center md:items-start' ICI */}
+          <div className="flex flex-col items-center md:items-start">
+            <Link href={l("/")} className="mb-4 flex items-center gap-2">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
                 <Home className="h-5 w-5 text-primary-foreground" />
               </div>
-              <span className="font-serif text-xl font-bold text-foreground">ImmoMaroc</span>
+              <span className="font-serif text-xl font-bold text-foreground">ConceptImmo</span>
             </Link>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              La première plateforme immobilière au Maroc. Trouvez votre bien idéal parmi des milliers d&apos;annonces vérifiées.
+              {t("aboutText")}
             </p>
           </div>
 
-          <div>
-            <h3 className="mb-4 font-semibold text-foreground">Navigation</h3>
-            <ul className="flex flex-col gap-2.5">
+          {/* Colonne 2 : Navigation */}
+          <div className="flex flex-col items-center md:items-start">
+            <h3 className="mb-4 font-semibold text-foreground">{t("nav.title")}</h3>
+            <ul className="flex flex-col items-center md:items-start gap-2.5">
               <li>
-                <Link href="/" className="text-sm text-muted-foreground transition-colors hover:text-primary">
-                  Accueil
+                <Link href={l("/")} className="text-sm text-muted-foreground transition-colors hover:text-primary">
+                  {t("nav.home")}
                 </Link>
               </li>
               <li>
-                <Link href="/biens" className="text-sm text-muted-foreground transition-colors hover:text-primary">
-                  Tous les biens
+                <Link href={l("/biens")} className="text-sm text-muted-foreground transition-colors hover:text-primary">
+                  {t("nav.allProperties")}
                 </Link>
               </li>
               
               {/* CONDITION D'AFFICHAGE SELON LE RÔLE */}
               <li>
                 {userRole === "client" ? (
-                  <Link href="/tableau-de-bord" className="text-sm text-muted-foreground transition-colors hover:text-primary">
-                    Mon tableau de bord
+                  <Link href={l("/tableau-de-bord")} className="text-sm text-muted-foreground transition-colors hover:text-primary">
+                    {t("nav.dashboard")}
                   </Link>
                 ) : (
-                  <Link href="/publier" className="text-sm text-muted-foreground transition-colors hover:text-primary">
-                    Publier une annonce
+                  <Link href={l("/publier")} className="text-sm text-muted-foreground transition-colors hover:text-primary">
+                    {t("nav.publish")}
                   </Link>
                 )}
               </li>
 
               <li>
-                <Link href="/a-propos" className="text-sm text-muted-foreground transition-colors hover:text-primary">
-                  A propos
+                <Link href={l("/a-propos")} className="text-sm text-muted-foreground transition-colors hover:text-primary">
+                  {t("nav.about")}
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="text-sm text-muted-foreground transition-colors hover:text-primary">
-                  Contact
+                <Link href={l("/contact")} className="text-sm text-muted-foreground transition-colors hover:text-primary">
+                  {t("nav.contact")}
                 </Link>
               </li>
             </ul>
           </div>
 
-      <div>
-            <h3 className="mb-4 font-semibold text-foreground">Types de biens</h3>
-            <ul className="flex flex-col gap-2.5">
+          {/* Colonne 3 : Types de biens */}
+          <div className="flex flex-col items-center md:items-start">
+            <h3 className="mb-4 font-semibold text-foreground">{t("types.title")}</h3>
+            <ul className="flex flex-col items-center md:items-start gap-2.5">
               {[
-                // On met les "value" en minuscules pour que ça corresponde à la base de données
-                { label: "Appartements", value: "appartement" },
-                { label: "Villas", value: "villa" },
-                { label: "Maisons", value: "maison" },
-                { label: "Terrains", value: "terrain" },
-                { label: "Bureaux", value: "bureau" }
+                { label: t("types.apartments"), value: "appartement" },
+                { label: t("types.villas"), value: "villa" },
+                { label: t("types.houses"), value: "maison" },
+                { label: t("types.lands"), value: "terrain" },
+                { label: t("types.offices"), value: "bureau" }
               ].map((type) => (
                 <li key={type.value}>
-                  {/* Utiliser <a> au lieu de <Link> force le rafraîchissement de la page de recherche */}
-                  <a 
-                    href={`/biens?type=${type.value}`} 
+                  <Link 
+                    href={l(`/biens?type=${type.value}`)} 
                     className="text-sm text-muted-foreground transition-colors hover:text-primary"
                   >
                     {type.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          <div>
-            <h3 className="mb-4 font-semibold text-foreground">Contact</h3>
-            <ul className="flex flex-col gap-3">
-              <li className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                123 Boulevard Mohammed V, Casablanca
+          {/* Colonne 4 : Contact */}
+          <div className="flex flex-col items-center md:items-start">
+            <h3 className="mb-4 font-semibold text-foreground">{t("contact.title")}</h3>
+            <ul className="flex flex-col items-center md:items-start gap-3">
+              {/* 🌟 AJOUT DE 'flex-col md:flex-row items-center md:items-start justify-center md:justify-start' ICI */}
+              <li className="flex flex-col md:flex-row items-center md:items-start justify-center md:justify-start gap-2 md:gap-2.5 text-sm text-muted-foreground">
+                <MapPin className="md:mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <span>{t("contact.address")}</span>
               </li>
-              <li className="flex items-center gap-2.5 text-sm text-muted-foreground">
+              <li className="flex flex-col md:flex-row items-center md:items-start justify-center md:justify-start gap-2 md:gap-2.5 text-sm text-muted-foreground">
                 <Phone className="h-4 w-4 shrink-0 text-primary" />
-                +212 5 22 00 00 00
+                <span dir="ltr">{t("contact.phone")}</span>
               </li>
-              <li className="flex items-center gap-2.5 text-sm text-muted-foreground">
+              <li className="flex flex-col md:flex-row items-center md:items-start justify-center md:justify-start gap-2 md:gap-2.5 text-sm text-muted-foreground">
                 <Mail className="h-4 w-4 shrink-0 text-primary" />
-                contact@immomaroc.ma
+                <span>{t("contact.email")}</span>
               </li>
             </ul>
           </div>
         </div>
 
+        {/* Copyright */}
         <div className="mt-10 border-t border-border pt-6 text-center text-sm text-muted-foreground">
-          <p>&copy; 2026 ImmoMaroc. Tous droits réservés.</p>
+          <p dir={currentLocale === 'ar' ? 'rtl' : 'ltr'}>&copy; {new Date().getFullYear()} ImmoMaroc. {t("copyright")}</p>
         </div>
       </div>
     </footer>
