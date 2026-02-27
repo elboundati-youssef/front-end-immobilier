@@ -390,7 +390,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ── Cities ── */}
+{/* ── Cities ── */}
         <section className="bg-secondary/50 py-20" ref={citiesRef}>
           <div className="mx-auto max-w-7xl px-4 lg:px-8">
             <div className={`mb-12 text-center reveal${citiesInView ? " visible" : ""}`}>
@@ -403,7 +403,8 @@ export default function HomePage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-              {cities.map((city, i) => {
+              {/* 🌟 MODIFICATION ICI : .slice(0, 8) limite la boucle aux 8 premiers éléments */}
+              {cities.slice(0, 8).map((city, i) => {
                 const count = allProperties.filter((p) => p.city === city).length
                 return (
                   <Link
