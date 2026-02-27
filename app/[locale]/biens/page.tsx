@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl" // 🌟 IMPORT NEXT-INTL
 import {
   SlidersHorizontal, X, ArrowUpDown, Loader2,
-  ChevronLeft, ChevronRight, Search, Sparkles, Building2
+  ChevronLeft, ChevronRight, Search, Sparkles, Building2, ChevronDown
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Navbar } from "@/components/navbar"
@@ -32,6 +32,88 @@ function useInView(threshold = 0.12) {
     obs.observe(el); return () => obs.disconnect()
   }, [threshold])
   return { ref, inView }
+}
+
+// 🌟 COMPOSANT INTERNE : Filtre de ville avec Autocomplétion
+function CityFilterAutocomplete({ 
+  value, 
+  onChange, 
+  placeholder, 
+  className 
+}: { 
+  value: string; 
+  onChange: (val: string) => void; 
+  placeholder: string; 
+  className: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState(value)
+  const wrapperRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  useEffect(() => {
+    setSearchTerm(value)
+  }, [value])
+
+  const filteredCities = cities.filter(city => {
+    const search = searchTerm.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    const target = city.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    return target.startsWith(search)
+  })
+
+  return (
+    <div ref={wrapperRef} className="relative w-full">
+      <input
+        type="text"
+        value={searchTerm}
+        onChange={(e) => {
+          setSearchTerm(e.target.value)
+          setIsOpen(true)
+          if (e.target.value === "") onChange("")
+        }}
+        onFocus={() => setIsOpen(true)}
+        placeholder={placeholder}
+        className={className}
+        style={{ paddingRight: '2.5rem' }} // Space for the arrow
+      />
+      <ChevronDown className="absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none z-10" />
+
+      {isOpen && (
+        <ul className="absolute z-50 top-full mt-1 max-h-60 w-full overflow-auto rounded-lg border border-border bg-card py-1 text-sm shadow-lg focus:outline-none">
+          {filteredCities.length === 0 ? (
+            <li className="relative cursor-default select-none py-2 px-4 text-muted-foreground">
+              Aucune ville
+            </li>
+          ) : (
+            filteredCities.map((city) => (
+              <li
+                key={city}
+                className={`relative cursor-pointer select-none py-2 px-4 hover:bg-primary/10 hover:text-primary transition-colors ${
+                  value === city ? "bg-primary/10 text-primary font-medium" : "text-foreground"
+                }`}
+                onClick={() => {
+                  onChange(city)
+                  setSearchTerm(city)
+                  setIsOpen(false)
+                }}
+              >
+                {city}
+              </li>
+            ))
+          )}
+        </ul>
+      )}
+    </div>
+  )
 }
 
 export default function BiensPage() {
@@ -317,15 +399,18 @@ export default function BiensPage() {
               </div>
               <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                 {[
-                  { label: t("filters.city"), el: <select value={city} onChange={(e) => setCity(e.target.value)} className="filter-input"><option value="">{t("filters.allFeminine")}</option>{cities.map((c) => <option key={c} value={c}>{c}</option>)}</select> },
-                  { label: t("filters.type"), el: <select value={type} onChange={(e) => setType(e.target.value as PropertyType|"")} className="filter-input"><option value="">{t("filters.allMasculine")}</option>{propertyTypes.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}</select> },
+                  { 
+                    label: t("filters.city"), 
+                    el: <CityFilterAutocomplete value={city} onChange={setCity} placeholder={t("filters.allFeminine")} className="filter-input w-full" />
+                  },
+                   { label: t("filters.type"), el: <select value={type} onChange={(e) => setType(e.target.value as PropertyType|"")} className="filter-input"><option value="">{t("filters.allMasculine")}</option>{propertyTypes.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}</select> },
                   { label: t("filters.transaction"), el: <select value={transaction} onChange={(e) => setTransaction(e.target.value as TransactionType|"")} className="filter-input"><option value="">{t("filters.allFeminine")}</option>{transactionTypes.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}</select> },
                   { label: t("filters.rooms"), el: <select value={rooms} onChange={(e) => setRooms(e.target.value)} className="filter-input"><option value="">{t("filters.allFeminine")}</option>{[1,2,3,4,5,6].map((n) => <option key={n} value={n}>{n}+</option>)}</select> },
                   { label: t("filters.minPrice"), el: <input type="number" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} placeholder="0" className="filter-input" /> },
                   { label: t("filters.maxPrice"), el: <input type="number" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder={t("filters.unlimited")} className="filter-input" /> },
                   { label: t("filters.minSurface"), el: <input type="number" value={minSurface} onChange={(e) => setMinSurface(e.target.value)} placeholder="0" className="filter-input" /> },
-                ].map(({ label, el }) => (
-                  <div key={label}>
+                 ].map(({ label, el }) => (
+                  <div key={label} className="relative">
                     <span className="filter-label">{label}</span>
                     {el}
                   </div>

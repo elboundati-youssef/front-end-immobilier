@@ -174,7 +174,65 @@ export const properties: Property[] = [
 // },
 ]
 
-export const cities = ["Casablanca", "Marrakech", "Rabat", "Tanger", "Fes", "Meknes", "Agadir", "Oujda"]
+export const cities = [
+  "Agadir",
+  "Al Hoceïma",
+  "Asilah",
+  "Azrou",
+  "Béni Mellal",
+  "Benslimane",
+  "Berkane",
+  "Berrechid",
+  "Casablanca",
+  "Chefchaouen",
+  "Dakhla",
+  "El Jadida",
+  "Errachidia",
+  "Essaouira",
+  "Fès",
+  "Fnideq",
+  "Guelmim",
+  "Guercif",
+  "Ifrane",
+  "Kénitra",
+  "Khémisset",
+  "Khenifra",
+  "Khouribga",
+  "Ksar El Kebir",
+  "Laâyoune",
+  "Larache",
+  "M'diq",
+  "Marrakech",
+  "Martil",
+  "Meknès",
+  "Midelt",
+  "Mohammedia",
+  "Nador",
+  "Ouarzazate",
+  "Oued Zem",
+  "Ouezzane",
+  "Oujda",
+  "Rabat",
+  "Safi",
+  "Salé",
+  "Sefrou",
+  "Settat",
+  "Sidi Bennour",
+  "Sidi Ifni",
+  "Sidi Kacem",
+  "Sidi Slimane",
+  "Tanger",
+  "Tan-Tan",
+  "Taourirt",
+  "Taroudant",
+  "Taza",
+  "Témara",
+  "Tétouan",
+  "Tinghir",
+  "Tiznit",
+  "Youssoufia",
+  "Zagora"
+];
 
 export const propertyTypes: { value: PropertyType; label: string }[] = [
   { value: "appartement", label: "Appartement" },
@@ -185,8 +243,8 @@ export const propertyTypes: { value: PropertyType; label: string }[] = [
 ]
 
 export const transactionTypes: { value: TransactionType; label: string }[] = [
-  { value: "vente", label: "Vente" },
-  { value: "location", label: "Location" },
+  { value: "vente", label: "Acheter" },
+  { value: "location", label: "Louer" },
 ]
 
 export function formatPrice(price: number, transaction: TransactionType): string {
