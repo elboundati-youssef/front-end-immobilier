@@ -99,7 +99,8 @@ export function PropertyCard({ property, initialIsFavorite = false }: PropertyCa
         />
         <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-transparent to-transparent pointer-events-none" />
 
-        <Link href={l(`/biens/${property.slug}`)} className="absolute inset-0 z-10" aria-label={`Voir les détails de ${property.title}`} />
+        {/* 🌟 MODIFICATION ICI : On utilise property.id au lieu de property.slug */}
+        <Link href={l(`/biens/${property.id}`)} className="absolute inset-0 z-10" aria-label={`Voir les détails de ${property.title}`} />
 
         <div className="absolute left-3 top-3 flex gap-2 z-20">
           <Badge className="bg-primary text-primary-foreground capitalize shadow-sm">
@@ -133,8 +134,8 @@ export function PropertyCard({ property, initialIsFavorite = false }: PropertyCa
         </div>
       </div>
 
-      {/* LIEN INFOS */}
-      <Link href={l(`/biens/${property.slug}`)} className="block p-4">
+      {/* 🌟 MODIFICATION ICI AUSSI : On utilise property.id au lieu de property.slug */}
+      <Link href={l(`/biens/${property.id}`)} className="block p-4">
         <h3 className="mb-1 font-serif text-lg font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">{property.title}</h3>
 
         <div className="mb-3 flex items-center gap-1.5 text-sm text-muted-foreground">

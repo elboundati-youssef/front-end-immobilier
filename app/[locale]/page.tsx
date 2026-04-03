@@ -11,13 +11,13 @@ import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { PropertyCard } from "@/components/property-card"
 import { SearchBar } from "@/components/search-bar"
-import { cities } from "@/lib/data"
+// 🌟 IMPORT DES DONNÉES STATIQUES 🌟
+import { cities, properties as staticProperties } from "@/lib/data"
 import api from "@/services/api"
-import dynamic from "next/dynamic"; // 🌟 L'import de dynamic
+import dynamic from "next/dynamic"; 
 
 const API_URL = "http://127.0.0.1:8000"
 
-// 🌟 IMPORT DYNAMIQUE DE LA CARTE SANS SSR
 const MapSearchWithNoSSR = dynamic(() => import('@/components/MapSearch'), {
   ssr: false,
   loading: () => (
@@ -123,7 +123,7 @@ export default function HomePage() {
 
   const { ref: statsRef, inView: statsInView } = useInView()
   const { ref: featuredRef, inView: featuredInView } = useInView()
-  const { ref: mapRef, inView: mapInView } = useInView() // 🌟 Ajout animation carte
+  const { ref: mapRef, inView: mapInView } = useInView() 
   const { ref: citiesRef, inView: citiesInView } = useInView()
   const { ref: ctaRef, inView: ctaInView } = useInView()
 
@@ -147,27 +147,41 @@ export default function HomePage() {
           try { setUser(JSON.parse(storedUser)) } catch (e) { console.error(e) }
         }
 
-        const res = await api.get("/properties")
-        const rawProperties = res.data
+        let finalProperties = [];
 
-        const normalizedProperties = rawProperties
-          .filter((p: any) => p.status === "publié")
-          .map((p: any) => {
-            let images: string[] = []
-            if (Array.isArray(p.images)) images = p.images
-            else if (typeof p.images === "string") { try { images = JSON.parse(p.images) } catch { images = [] } }
-            const formattedImages = images.map((img) => (img.startsWith("http") ? img : `${API_URL}${img}`))
-            return {
-              ...p,
-              id: p.id.toString(),
-              images: formattedImages.length > 0 ? formattedImages : ["/placeholder.jpg"],
-              type: p.property_type,
-              transaction: p.transaction_type,
+        // 🌟 TENTATIVE DE RÉCUPÉRATION VIA L'API
+        try {
+            const res = await api.get("/properties")
+            const rawProperties = res.data
+
+            finalProperties = rawProperties
+              .filter((p: any) => p.status === "publié")
+              .map((p: any) => {
+                let images: string[] = []
+                if (Array.isArray(p.images)) images = p.images
+                else if (typeof p.images === "string") { try { images = JSON.parse(p.images) } catch { images = [] } }
+                const formattedImages = images.map((img) => (img.startsWith("http") ? img : `${API_URL}${img}`))
+                return {
+                  ...p,
+                  id: p.id.toString(),
+                  images: formattedImages.length > 0 ? formattedImages : ["/placeholder.jpg"],
+                  type: p.property_type || p.type,
+                  transaction: p.transaction_type || p.transaction,
+                }
+              })
+
+            // Si la base de données est vide, on bascule sur les données statiques
+            if (finalProperties.length === 0) {
+                finalProperties = staticProperties;
             }
-          })
+        } catch (apiError) {
+            // 🌟 SI L'API ÉCHOUE (Serveur éteint), ON UTILISE LES DONNÉES STATIQUES
+            console.log("API inaccessible, utilisation des données locales data.ts...");
+            finalProperties = staticProperties;
+        }
 
-        setAllProperties(normalizedProperties)
-        setFeaturedProperties(normalizedProperties.slice(0, 6))
+        setAllProperties(finalProperties)
+        setFeaturedProperties(finalProperties.slice(0, 6))
 
         const token = localStorage.getItem("token")
         if (token) {
@@ -358,7 +372,7 @@ export default function HomePage() {
           )}
         </section>
 
-        {/*  ── CARTE INTERACTIVE GLOBALE ──  */}
+        {/* ── CARTE INTERACTIVE GLOBALE ──  */}
         <section className="mx-auto max-w-7xl px-4 pb-20 lg:px-8" ref={mapRef}>
           <div className={`reveal${mapInView ? " visible" : ""}`}>
             <div className="mb-8 flex items-center gap-3">
@@ -367,17 +381,14 @@ export default function HomePage() {
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-foreground" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-                  
                   {t("mapSection.title")}
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">
-                  
                   {t("mapSection.subtitle")}
                 </p>
               </div>
             </div>
 
-            {/* LE CONTAINER DE LA CARTE EST LÀ ! 👇 */}
             <div className="h-[500px] w-full rounded-2xl overflow-hidden shadow-lg border border-border">
               {allProperties.length > 0 ? (
                 <MapSearchWithNoSSR properties={allProperties} locale={currentLocale} />
@@ -390,7 +401,7 @@ export default function HomePage() {
           </div>
         </section>
 
-{/* ── Cities ── */}
+        {/* ── Cities ── */}
         <section className="bg-secondary/50 py-20" ref={citiesRef}>
           <div className="mx-auto max-w-7xl px-4 lg:px-8">
             <div className={`mb-12 text-center reveal${citiesInView ? " visible" : ""}`}>
@@ -403,7 +414,6 @@ export default function HomePage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-              {/* 🌟 MODIFICATION ICI : .slice(0, 8) limite la boucle aux 8 premiers éléments */}
               {cities.slice(0, 8).map((city, i) => {
                 const count = allProperties.filter((p) => p.city === city).length
                 return (
