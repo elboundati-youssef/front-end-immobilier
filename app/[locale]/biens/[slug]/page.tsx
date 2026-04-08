@@ -5,7 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
 import dynamic from 'next/dynamic'
-import { useTranslations } from "next-intl"
+import { useTranslations } from "next-intl" // 🌟 IMPORT NEXT-INTL
 import {
   ArrowLeft, Heart, Share2, MapPin, Maximize2,
   BedDouble, Bath, Home, Phone, Mail, MessageCircle,
@@ -17,10 +17,10 @@ import { Badge } from "@/components/ui/badge"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { PropertyCard } from "@/components/property-card"
-// 🌟 IMPORT DES DONNÉES STATIQUES 🌟
-import { formatPrice, properties as staticProperties } from "@/lib/data" 
+import { formatPrice } from "@/lib/data"
 import api from "@/services/api"
 
+// 🌟 IMPORT DYNAMIQUE DE LA CARTE 🌟
 const MapViewer = dynamic(() => import('@/components/MapViewer'), { 
     ssr: false, 
     loading: () => <div className="h-full w-full flex items-center justify-center bg-secondary/50"><Loader2 className="animate-spin text-primary" /></div>
@@ -29,14 +29,16 @@ const MapViewer = dynamic(() => import('@/components/MapViewer'), {
 const API_URL = "http://127.0.0.1:8000";
 
 export default function PropertyDetailPage({ params }: { params: Promise<{ slug: string }> }) {
-  const t = useTranslations("PropertyDetail") 
+  const t = useTranslations("PropertyDetail") // 🌟 INITIALISATION TRADUCTION
   const { slug } = use(params)
   const router = useRouter()
   const pathname = usePathname()
   
+  // 🌟 GESTION DE LA LANGUE
   const currentLocale = pathname.split("/")[1] || "fr"
   const l = (path: string) => `/${currentLocale}${path}`
 
+  // 🌟 HELPER POUR TRADUIRE TYPES/TRANSACTIONS
   const getTranslatedLabel = (category: string, value: string, defaultLabel: string) => {
     try {
       const tSearch = require(`@/messages/${currentLocale}.json`).SearchBar;
@@ -77,41 +79,52 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ slug:
     setMounted(true); 
     const fetchData = async () => {
       try {
-        // 🌟 1. LECTURE STRICTE DEPUIS LE FICHIER data.ts
-        const loadedProperty = staticProperties.find(p => p.id.toString() === slug.toString());
+        const res = await api.get(`/properties/${slug}`)
+        const loadedProperty = res.data
+        setProperty(loadedProperty)
 
-        if (!loadedProperty) {
-            setProperty(null);
-            setLoading(false);
-            return;
-        }
+       
 
-        setProperty(loadedProperty);
+        const allRes = await api.get('/properties')
+        const allProps = allRes.data
 
-        // 🌟 2. SIMILAIRES STRICTEMENT DEPUIS data.ts
-        const similar = staticProperties
-            .filter(p => p.id.toString() !== loadedProperty.id.toString() && (p.city === loadedProperty.city || p.type === loadedProperty.type))
-            .slice(0, 3);
-        setSimilarProperties(similar);
+        const similar = allProps
+            .filter((p: any) => 
+                p.id.toString() !== loadedProperty.id.toString() && 
+                (p.city === loadedProperty.city || p.property_type === loadedProperty.property_type)
+            )
+            .slice(0, 3)
+            .map((p: any) => {
+                let imgs: string[] = [];
+                if (Array.isArray(p.images)) imgs = p.images;
+                else if (typeof p.images === 'string') { try { imgs = JSON.parse(p.images); } catch(e){ imgs = [] } }
+                const formattedImages = imgs.map(img => img.startsWith('http') ? img : `${API_URL}${img}`);
+                return {
+                    ...p,
+                    id: p.id.toString(),
+                    images: formattedImages.length > 0 ? formattedImages : ["/placeholder.jpg"],
+                    type: p.property_type, 
+                    transaction: p.transaction_type
+                };
+            });
+        
+        setSimilarProperties(similar)
 
-        // 🌟 3. FAVORIS (On garde l'appel API juste pour vérifier si le client a mis un coeur)
         const token = localStorage.getItem('token');
         if (token) {
             try {
                 const favRes = await api.get('/my-favorites');
                 const favIds = favRes.data.map((p: any) => p.id.toString());
                 setUserFavorites(favIds);
-                setIsFav(favIds.includes(loadedProperty.id.toString()));
-            } catch (err) { console.log("Erreur favoris", err); }
+                if (loadedProperty) setIsFav(favIds.includes(loadedProperty.id.toString()));
+            } catch (err) { console.log("Erreur favoris (non connecté ?)", err); }
         }
-
       } catch (err) {
-        console.error("Erreur chargement", err)
+        console.error("Erreur chargement global", err)
       } finally {
         setLoading(false)
       }
     }
-    
     if (slug) fetchData()
   }, [slug])
 
@@ -235,11 +248,8 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ slug:
   }
 
   const mapCenter = useMemo(() => {
-    const lat = property?.latitude || property?.lat;
-    const lng = property?.longitude || property?.lng;
-    
-    if (lat && lng) {
-      return [parseFloat(lat), parseFloat(lng)] as [number, number];
+    if (property && property.latitude && property.longitude) {
+      return [parseFloat(property.latitude), parseFloat(property.longitude)] as [number, number];
     }
     return null;
   }, [property]);
@@ -407,7 +417,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ slug:
             )}
 
             <div className="flex flex-wrap items-center gap-4 border-t border-border pt-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1.5"><Eye className="h-4 w-4" /> <span>{property.views_count || property.views || 0}</span> <span>{(property.views_count || property.views || 0) > 1 ? t("stats.viewsPlural") : t("stats.viewsSingular")}</span></div>
+              <div className="flex items-center gap-1.5"><Eye className="h-4 w-4" /> <span>{property.views_count || 0}</span> <span>{property.views_count > 1 ? t("stats.viewsPlural") : t("stats.viewsSingular")}</span></div>
               <div className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /> <span>{t("stats.publishedOn")}</span> <span>{formattedDate}</span></div>
             </div>
           </div>

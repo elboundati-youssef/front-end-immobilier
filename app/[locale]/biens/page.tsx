@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react"
 import { useSearchParams } from "next/navigation"
-import { useTranslations } from "next-intl"
+import { useTranslations } from "next-intl" // 🌟 IMPORT NEXT-INTL
 import {
   SlidersHorizontal, X, ArrowUpDown, Loader2,
   ChevronLeft, ChevronRight, Search, Sparkles, Building2, ChevronDown
@@ -83,7 +83,7 @@ function CityFilterAutocomplete({
         onFocus={() => setIsOpen(true)}
         placeholder={placeholder}
         className={className}
-        style={{ paddingRight: '2.5rem' }}
+        style={{ paddingRight: '2.5rem' }} // Space for the arrow
       />
       <ChevronDown className="absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none z-10" />
 
@@ -117,7 +117,7 @@ function CityFilterAutocomplete({
 }
 
 export default function BiensPage() {
-  const t = useTranslations("PropertiesPage")
+  const t = useTranslations("PropertiesPage") // 🌟 INITIALISATION TRADUCTION
   const searchParams = useSearchParams()
 
   const [allProperties, setAllProperties]   = useState<any[]>([])
@@ -141,6 +141,7 @@ export default function BiensPage() {
 
   const { ref: resultsRef, inView: resultsInView } = useInView()
 
+  // Traductions des suggestions
   const suggestions = [
     t("suggestions.s1"),
     t("suggestions.s2"),
@@ -187,25 +188,12 @@ export default function BiensPage() {
     }
   })
 
-  // 🌟 NOUVELLE LOGIQUE DE CHARGEMENT : Base de données OU Fichier data.ts
   const fetchAllProperties = async () => {
     setLoading(true)
     try {
       const res = await api.get('/properties')
-      const dbProperties = formatProperties(res.data)
-
-      // Si la DB a des données, on les utilise. Sinon (DB vide), on met le fichier staticProperties
-      if (dbProperties.length > 0) {
-        setAllProperties(dbProperties)
-      } else {
-        setAllProperties(staticProperties)
-      }
-    } catch { 
-      // Si l'API est cassée ou éteinte, on utilise le fichier staticProperties
-      setAllProperties(staticProperties) 
-    } finally { 
-      setLoading(false) 
-    }
+      setAllProperties([...staticProperties, ...formatProperties(res.data)])
+    } catch { /* silent */ } finally { setLoading(false) }
   }
 
   useEffect(() => { fetchAllProperties() }, [])
@@ -214,23 +202,10 @@ export default function BiensPage() {
     if (e) e.preventDefault()
     if (!globalSearch.trim()) { setHasSearched(false); fetchAllProperties(); return }
     setLoading(true); setHasSearched(true)
-    
     try {
       const res = await api.get(`/smart-search?q=${encodeURIComponent(globalSearch)}`)
-      const dbSearchResults = formatProperties(res.data)
-      setAllProperties(dbSearchResults)
-    } catch {
-      // 🌟 Si le backend est éteint, on fait la recherche manuellement sur les propriétés statiques
-      const searchLower = globalSearch.toLowerCase();
-      const localResults = staticProperties.filter(p => 
-        p.title.toLowerCase().includes(searchLower) || 
-        p.city.toLowerCase().includes(searchLower) ||
-        p.description.toLowerCase().includes(searchLower)
-      );
-      setAllProperties(localResults);
-    } finally { 
-      setLoading(false) 
-    }
+      setAllProperties(formatProperties(res.data))
+    } catch { /* silent */ } finally { setLoading(false) }
   }
 
   const handleSuggestionClick = (text: string) => {
